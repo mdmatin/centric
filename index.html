@@ -2353,7 +2353,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-05m';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-05n';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5632,8 +5632,10 @@ function drawBudgetChart(){
     const cumOf = (list, n) => { const a = new Array(n).fill(0); list.forEach(e=>{ if (cs.has(e.category)){ const k = Number(e.date.slice(8,10))-1; if (k>=0 && k<n) a[k]+=(e.amount||0); } }); let t=0; return a.map(v=>t+=v); };
     const upTo = D0.isNow ? new Date().getDate() : dim;
     const cur = cumOf(xEntries(ym), dim).slice(0, upTo), prev = pym >= d.entriesFrom ? cumOf(xEntries(pym), dimP) : null;
-    const cMax = cur.length ? cur[cur.length-1] : 0, pMax = prev ? prev[prev.length-1] : 0, base = Math.max(pMax, D0.bud), cap = cMax > base*2;
-    const mx = cap ? base*1.35 : Math.max(cMax, base)*1.1;
+    const cMax = cur.length ? cur[cur.length-1] : 0, pMax = prev ? prev[prev.length-1] : 0;
+    // a far bigger last month (a one-off) would flatten this month too: it then runs off the top with a label
+    const capP = pMax > Math.max(cMax, D0.bud)*2, base = capP ? Math.max(cMax, D0.bud) : Math.max(pMax, D0.bud), cap = cMax > base*2;
+    const mx = cap || capP ? base*1.35 : Math.max(cMax, base)*1.1;
     const x = i => dim>1 ? 4 + i/(dim-1)*(W-8) : W/2, y = v => Math.max(-3, Hp - v/mx*(Hp-4));
     const L = a => a.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1)).join('');
     const lx = x(Math.max(0,cur.length-1));
@@ -5644,6 +5646,7 @@ function drawBudgetChart(){
       <line x1="0" x2="${W}" y1="${y(D0.bud)}" y2="${y(D0.bud)}" stroke="var(--ink-3)" stroke-dasharray="4 4"/>
       <text x="0" y="${y(D0.bud)-5}">Budget ₹${fCmp(D0.bud)}</text>
       ${cur.length>1 ? `<path d="${L(cur)}L${lx},${Hp}L${x(0)},${Hp}Z" fill="color-mix(in srgb, var(--blue) 18%, transparent)"/><path d="${L(cur)}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
+      ${capP ? `<text x="${W}" y="11" text-anchor="end" style="fill:var(--ink-3);font-weight:600;font-size:10.5px">Last month ₹${fCmp(pMax)} ↑</text>` : ''}
       ${cap ? `<text x="${Math.min(lx+4, W-48)}" y="11" style="fill:var(--blue);font-weight:700;font-size:10.5px">₹${fCmp(cMax)} ↑</text>`
             : cur.length ? `<circle cx="${lx}" cy="${y(cMax)}" r="4" fill="var(--canvas)" stroke="var(--blue)" stroke-width="2"/>` : ''}
       ${cur.length ? ptLabel(lx, cap ? 18 : y(cMax), `₹${fCmp(cMax)} · ${Math.round(cMax/D0.bud*100)}%`, cMax > D0.bud, W, Hp) : ''}
