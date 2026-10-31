@@ -2353,7 +2353,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-05p';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-05q';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5621,6 +5621,8 @@ function ptLabel(px, py, t, over, W, Hp, above){
     <text x="${(x+w/2).toFixed(1)}" y="${(y+13.5).toFixed(1)}" text-anchor="middle" style="fill:${c};font-size:11px;font-weight:700">${t}</text></g>`;
 }
 // hidden amounts on the graph: iOS Safari ignores a CSS blur on SVG text, so the amounts get an SVG blur filter instead
+// amounts on the graph when hidden: masked in the text itself (iOS draws SVG text without CSS blur)
+const hAmt = v => document.body.classList.contains('blur') ? '₹ •••' : '₹' + fCmp(v);
 function svgHide(svg){
   if (!document.body.classList.contains('blur')) return;
   if (!svg.querySelector('#svHide')) svg.insertAdjacentHTML('afterbegin', '<defs><filter id="svHide" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="4"/></filter></defs>');
@@ -5652,12 +5654,12 @@ function drawBudgetChart(){
       <pattern id="vbgD" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".8" fill="var(--ink-3)" opacity=".55"/></pattern></defs>
       ${prev ? `<path d="${L(prev.slice(0,dim))}L${x(Math.min(dim,prev.length)-1)},${Hp}L${x(0)},${Hp}Z" fill="url(#vbgD)"/><path d="${L(prev.slice(0,dim))}" fill="none" stroke="var(--ink-3)" stroke-opacity=".6"/>` : ''}
       <line x1="0" x2="${W}" y1="${y(D0.bud)}" y2="${y(D0.bud)}" stroke="var(--ink-3)" stroke-dasharray="4 4"/>
-      <text x="0" y="${y(D0.bud)-5}" id="vbBl">Budget</text><text class="amt" id="vbBa" x="46" y="${y(D0.bud)-5}">₹${fCmp(D0.bud)}</text>
+      <text x="0" y="${y(D0.bud)-5}" id="vbBl">Budget</text><text class="amt" id="vbBa" x="46" y="${y(D0.bud)-5}">${hAmt(D0.bud)}</text>
       ${cur.length>1 ? `<path d="${L(cur)}L${lx},${Hp}L${x(0)},${Hp}Z" fill="color-mix(in srgb, var(--blue) 18%, transparent)"/><path d="${L(cur)}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
-      ${capP ? `<text id="vbPl" x="${W-60}" y="11" text-anchor="end" style="fill:var(--ink-3);font-weight:600;font-size:10.5px">Last month</text><text class="amt" id="vbPa" x="${W}" y="11" text-anchor="end" style="fill:var(--ink-3);font-weight:600;font-size:10.5px">₹${fCmp(pMax)} ↑</text>` : ''}
-      ${cap ? `<text class="amt" x="${Math.min(lx+4, W-48)}" y="11" style="fill:var(--blue);font-weight:700;font-size:10.5px">₹${fCmp(cMax)} ↑</text>`
+      ${capP ? `<text id="vbPl" x="${W-60}" y="11" text-anchor="end" style="fill:var(--ink-3);font-weight:600;font-size:10.5px">Last month</text><text class="amt" id="vbPa" x="${W}" y="11" text-anchor="end" style="fill:var(--ink-3);font-weight:600;font-size:10.5px">${hAmt(pMax)} ↑</text>` : ''}
+      ${cap ? `<text class="amt" x="${Math.min(lx+4, W-48)}" y="11" style="fill:var(--blue);font-weight:700;font-size:10.5px">${hAmt(cMax)} ↑</text>`
             : cur.length ? `<circle cx="${lx}" cy="${y(cMax)}" r="4" fill="var(--canvas)" stroke="var(--blue)" stroke-width="2"/>` : ''}
-      ${cur.length ? ptLabel(lx, cap ? 18 : y(cMax), `₹${fCmp(cMax)} · ${Math.round(cMax/D0.bud*100)}%`, cMax > D0.bud, W, Hp) : ''}
+      ${cur.length ? ptLabel(lx, cap ? 18 : y(cMax), `${hAmt(cMax)} · ${Math.round(cMax/D0.bud*100)}%`, cMax > D0.bud, W, Hp) : ''}
       <line x1="0" x2="${W}" y1="${Hp}" y2="${Hp}" stroke="var(--hairline)"/>
       ${lbl(0,'1 '+ymShort(ym),'start')}${D0.isNow && upTo>3 && upTo<dim-3 ? lbl(lx,'Today','middle') : ''}${lbl(W,dim+' '+ymShort(ym),'end')}
       <line id="ah" class="gridline" y1="0" y2="${Hp}" stroke-dasharray="3 3" style="display:none"/>`;
@@ -5682,9 +5684,9 @@ function drawBudgetChart(){
   svg.innerHTML = ms.map((v,i)=>{ const o = v.s > v.b && v.b > 0, x0 = bx(i), last = i===n-1;
       return `<rect data-vbb="${i}" x="${x0}" y="${y(v.s)}" width="${bw}" height="${Math.max(0,Hp-y(v.s))}" rx="5" fill="color-mix(in srgb, ${o?'var(--over)':'var(--blue)'} 20%, var(--canvas))" stroke="${o?'var(--over)':'var(--blue)'}" stroke-width="1.4" opacity="${last?1:.6}"/>
         ${v.b ? `<line x1="${x0-4}" x2="${x0+bw+4}" y1="${y(v.b)}" y2="${y(v.b)}" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>` : ''}
-        ${v.s > mx ? `<text class="amt" x="${x0-4}" y="11" text-anchor="end" style="fill:var(--over);font-weight:700;font-size:10.5px">₹${fCmp(v.s)} ↑</text>` : ''}
+        ${v.s > mx ? `<text class="amt" x="${x0-4}" y="11" text-anchor="end" style="fill:var(--over);font-weight:700;font-size:10.5px">${hAmt(v.s)} ↑</text>` : ''}
         <text x="${x0+bw/2}" y="${H-4}" text-anchor="middle" style="${last?'fill:var(--ink)':''}">${esc(ymShort(v.m).slice(0,3))}</text>`; }).join('')
-    + (()=>{ const v = ms[n-1]; return v.s && v.b ? ptLabel(bx(n-1)+bw/2, y(v.s), `₹${fCmp(v.s)} · ${Math.round(v.s/v.b*100)}%`, v.s > v.b, W, Hp, true) : ''; })()
+    + (()=>{ const v = ms[n-1]; return v.s && v.b ? ptLabel(bx(n-1)+bw/2, y(v.s), `${hAmt(v.s)} · ${Math.round(v.s/v.b*100)}%`, v.s > v.b, W, Hp, true) : ''; })()
     + `<line x1="0" x2="${W}" y1="${Hp}" y2="${Hp}" stroke="var(--hairline)"/>`;
   const bars = [...svg.querySelectorAll('[data-vbb]')], dimAll = () => bars.forEach((r,i)=>r.setAttribute('opacity', i===n-1 ? 1 : .6));
   svgHide(svg);
