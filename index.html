@@ -1192,10 +1192,10 @@ input[type=date]::-webkit-datetime-edit{padding:0}
 .prof .vl{font-size:16px;color:var(--ink-2);display:flex;align-items:center;gap:5px;white-space:nowrap;max-width:55%;overflow:hidden;text-overflow:ellipsis}
 .prof .vl svg{width:13px;height:13px;color:var(--ink-3);flex:none}
 .prof select{position:absolute;inset:0;width:100%;opacity:0;font-size:16px}
-.bkonly .sw,.prof .sw{width:51px;height:31px;border-radius:16px;background:#e9e9ea;position:relative;flex:0 0 auto;transition:background .25s}
-.bkonly .sw::after,.prof .sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;
+.bkonly .sw,.prof .sw,.liqsel .sw{width:51px;height:31px;border-radius:16px;background:#e9e9ea;position:relative;flex:0 0 auto;transition:background .25s}
+.bkonly .sw::after,.prof .sw::after,.liqsel .sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;
   box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:left .25s cubic-bezier(.32,.72,0,1)}
-.bkonly .sw.on,.prof .sw.on{background:var(--up)}.bkonly .sw.on::after,.prof .sw.on::after{left:22px}
+.bkonly .sw.on,.prof .sw.on,.liqsel .sw.on{background:var(--up)}.bkonly .sw.on::after,.prof .sw.on::after,.liqsel .sw.on::after{left:22px}
 .prof .ft{margin:7px 32px 0;font-size:12.5px;line-height:1.4;color:var(--ink-2)}
 .prof .ft.ctr{text-align:center;margin-top:10px}
 .prof .danger{margin-top:28px}
@@ -1213,8 +1213,8 @@ input[type=date]::-webkit-datetime-edit{padding:0}
 .prof .seg2 button{font-size:13px;font-weight:500;padding:5px 11px;border-radius:7px;color:var(--ink)}
 .prof .seg2 button.on{background:var(--canvas);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
 html[data-theme=dark] .prof .seg2 button.on{background:#636366}
-html[data-theme=dark] .bkonly .sw,html[data-theme=dark] .prof .sw{background:#39393d}
-html[data-theme=dark] .prof .sw.on{background:var(--up)}
+html[data-theme=dark] .bkonly .sw,html[data-theme=dark] .prof .sw,html[data-theme=dark] .liqsel .sw{background:#39393d}
+html[data-theme=dark] .prof .sw.on,html[data-theme=dark] .liqsel .sw.on{background:var(--up)}
 
 .pg-add{margin-left:auto;width:34px;height:34px;border-radius:50%;background:var(--sunken);display:grid;place-items:center;color:var(--blue);flex:none}
 .pg-add svg{width:18px;height:18px}
@@ -1351,6 +1351,11 @@ html[data-theme=dark] .bk-hero .pg-big.off{color:#ff9f0a}
 /* Accounts: the Liquid card */
 .liq{padding:16px 18px 12px}
 .liq .hd{display:flex;justify-content:space-between;align-items:center}.liq .k{font-size:13px;color:var(--ink-2)}
+.liq .k[data-liqpick]{display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:2px 0}.liq .k .lc{color:var(--blue)}.liq .k svg{width:12px;height:12px;transition:transform .2s}.liq .k.open svg{transform:rotate(180deg)}
+.liqsel{margin-top:12px;padding-top:4px;border-top:1px solid var(--hairline)}
+.liqsel .lr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0}.liqsel .lr+.lr{border-top:1px solid var(--hairline)}
+.liqsel .lr span{font-size:14.5px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.liqsel .lr small{display:block;font-size:12px;color:var(--ink-2)}
+.liqsel .lr.off span{color:var(--ink-3)}.liqsel .lft{display:flex;justify-content:flex-end;align-items:center;padding:8px 0 2px;font-size:12.5px;color:var(--ink-2)}.liqsel .lft button{color:var(--blue);font-size:12.5px}
 .liq .big{font:600 26px/1.15 var(--font-disp);letter-spacing:-.6px;margin-top:4px}
 .bcs,.bdc{font-size:.6em;letter-spacing:0}.bcs{margin-right:.06em}.bdc{color:var(--ink-2)}.down .bdc,.big.down .bdc,.pg-big.up .bdc,.pg-big.off .bdc{color:inherit}
 .asum .albl{font-size:13px;color:var(--ink-2);margin-bottom:2px}
@@ -2353,7 +2358,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-05s';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-05t';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5502,6 +5507,10 @@ function renderSpend(){
   paintBooks();      // the Books pill lives on Accounts now; this also sets the orange dots
   $$('#spBody [data-acc]').forEach(r=>r.onclick=()=>pushPage({ kind:'acct', acc:r.dataset.acc, list:accSibs(r) }));
   $$('#spBody [data-addacc]').forEach(b=>b.onclick=()=>pushPage({ kind:'accform' }));
+  $$('#spBody [data-liqpick]').forEach(b=>b.onclick=()=>{ liqOpen = !liqOpen; renderSpend(); });
+  $$('#spBody [data-liqx]').forEach(b=>b.onclick=()=>{ const lx = new Set(load('inv.liqEx')||[]), n = b.dataset.liqx;
+    lx.has(n) ? lx.delete(n) : lx.add(n); save('inv.liqEx', [...lx]); renderSpend(); });
+  $$('#spBody [data-liqall]').forEach(b=>b.onclick=()=>{ save('inv.liqEx', []); renderSpend(); });
   $$('#spBody [data-recerr]').forEach(b=>b.onclick=()=>{ const R = (xd()||{}).recErr; if (R && R.items) alert(R.items.map(x=>`${x.name}${x.ym ? ' · '+ymLabel(x.ym) : ''}\n${x.msg}`).join('\n\n') + '\n\nIt will be posted on the next run once fixed, or you can add it by hand.'); pushPage({ kind:'recurring' }); });
   $$('#spBody [data-bankgo]').forEach(b=>b.onclick=()=>{ const h = [...document.querySelectorAll('#spBody .sechead h2')].find(x=>x.textContent.trim()==='Bank'); if (h) h.scrollIntoView({ behavior:'smooth', block:'start' }); });
   $$('#spBody [data-constr]').forEach(b=>b.onclick=()=>pushPage({ kind:'constr' }));
@@ -6341,11 +6350,14 @@ const cardMark = a => { const m = CARD_ICONS.find(([re])=>re.test(a.name)); retu
 const accMark = a => !a ? bankMark('') : (isCashAcc(a) || /\bcash\b/i.test(a.name)) ? `<div class="tile in">${ICONS.cash}<img class="ok" src="${LOGO_INLINE.CASH}" alt=""></div>`
   : (accKind(a)==='card' && cardMark(a)) || bankMark(a.name);
 const nameMark = n => { const a = accByName(n); return a ? accMark(a) : bankMark(n); };
+let liqOpen = false;   // the Liquid card's account picker
 function spAccountsHtml(){
   const acc = xAccounts(); if (!acc.length) return '<div class="empty">No accounts yet — add them to the Accounts tab in your sheet</div>';
   // each card on its own: one card in credit must not hide another card's dues
+  // the Liquid card can show a chosen set of accounts — a display filter on this phone only
+  const lx = new Set(load('inv.liqEx')||[]), liqAcc = acc.filter(a=>accKind(a)!=='construction');
   const sum = { bank:0, card:0, wallet:0, construction:0 }, cards = { owed:0, credit:0 };
-  acc.forEach(a=>{ const b = accBalance(a.name), k = accKind(a); sum[k] += b;
+  acc.forEach(a=>{ if (lx.has(a.name)) return; const b = accBalance(a.name), k = accKind(a); sum[k] += b;
     if (k==='card'){ if (b<0) cards.owed += -b; else cards.credit += b; } });
   // one card: Liquid (bank + wallet − what the cards owe), its three parts, the Books chip, and a
   // quieter line for Construction (whole fund, investments included), Zakat and Interest
@@ -6355,10 +6367,13 @@ function spAccountsHtml(){
   const ter = [hasC ? `<button data-constr>${xTile('Construction')}Constr. <b class="num money">${fKL(cf.total)}</b></button>` : '',
     I ? `<button data-zi="interest"><span class="zico iq">${PCT_IC}</span>Int. <b class="num money">${fKL(Math.max(0, I.left))}</b></button>` : '',
     n ? `<button data-zi="zakat"><span class="zico">${MOON_IC}</span>Zakat <b class="num money">${fKL(n.owing ? n.cur.left : n.cur.due)}</b></button>` : ''].filter(Boolean).join('');   // Construction · Interest · Zakat
-  const head = `<div class="card liq"><div class="hd"><div class="k">Liquid</div><button class="okchip" id="books" hidden aria-label="Books"></button></div>
+  const head = `<div class="card liq"><div class="hd"><button class="k${liqOpen?' open':''}" data-liqpick aria-expanded="${liqOpen}">Liquid<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><button class="okchip" id="books" hidden aria-label="Books"></button></div>
       <div class="big num money">${bigAmt(fINR2(liquid))}</div>
       <div class="g3"><div><span>Bank</span><b class="num money">${fLakh(sum.bank)}</b></div><div><span>Wallet</span><b class="num money">${fLakh(sum.wallet)}</b></div>
         <div><span>Cards</span><b class="num money">${cards.owed > 0 ? '−' + fLakh(cards.owed) : fINR(0)}</b></div></div>
+      ${liqOpen ? `<div class="liqsel">${liqAcc.map(a=>{ const on = !lx.has(a.name), k = accKind(a);
+        return `<div class="lr${on?'':' off'}"><span>${esc(a.name)}<small>${k==='card'?'Card':k==='wallet'?'Wallet':'Bank'}</small></span><button class="sw${on?' on':''}" role="switch" aria-checked="${on}" data-liqx="${esc(a.name)}"></button></div>`; }).join('')}
+        ${lx.size ? '<div class="lft"><button data-liqall>Show all</button></div>' : ''}</div>` : ''}
 </div>${ter ? `<div class="lpills">${ter}</div>` : ''}`;
   // the Accounts / Transfers / Income switch is gone: transfers and income are in Activity (filter)
   return head + bankBannerHtml() + ziRemindHtml() + accGroupsHtml(acc) + `<button class="addacc" data-addacc>+ Add account</button>`;
