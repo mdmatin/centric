@@ -2358,7 +2358,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-05t';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-05u';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -8432,6 +8432,12 @@ function budgetAlert(rec, prev){
   return '';
 }
 async function saveMove(kind, rec, was){
+  // a cashback entry carrying a running total ("Cashback · total ₹4,980"): a changed amount moves the total with it
+  if (kind==='income' && was && isCashback(rec.type) && rec.amount !== was.amount){
+    const t = cbTotalOf(rec), t0 = cbTotalOf(was);
+    if (t!=null && t===t0){ const nt = Math.round((t + rec.amount - was.amount)*100)/100, fx = v => String(v||'').replace(/(total\s*)₹?\s*[\d,]+(?:\.\d+)?/i, '$1' + fINR(nt));
+      rec.note = fx(rec.note); if (rec.remark!=null) rec.remark = fx(rec.remark); }
+  }
   const draftDone = was ? null : xDraftPend, recDone = was ? null : xRecPend, kiteDone = !was && xKitePay && /^stocks?$/i.test(rec.sub||'');   // only a Stocks liquidation comes out of the Kite wallet
   const d = xd(), key = kind==='expense' ? 'entries' : kind==='income' ? 'incomes' : 'transfers';
   const list = d[key] = d[key] || [];
