@@ -2353,7 +2353,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-05q';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-05r';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -7409,11 +7409,12 @@ function ziRemindHtml(){
 // a bank's page: its interest, every quarter (and the yearly rows before)
 function ziBankHtml(a, p){ p = p || {};
   const b = ziBanks(), col = ziColOf(a.name); if (!b || !col) return '';
-  const rows = b.rows.filter(r=>r.v && r.v[col]!=null);
+  // a quarter shows on every bank's page once any bank has it, so a bank left out can still be filled in
+  const rows = b.rows.filter(r=>r.v && (r.v[col]!=null || (r.date >= ZI_QSTART && Object.keys(r.v).length)));
   const qs = rows.filter(r=>r.date >= ZI_QSTART), lastQ = qs[qs.length-1];
   const due = ziDue(), next = due || qNext(qOf(todayISO()));
-  const fy = qFY(next), fySum = qs.filter(r=>qFY(r.date)===fy).reduce((s,r)=>s+r.v[col],0);
-  const all = rows.reduce((s,r)=>s+r.v[col],0);
+  const fy = qFY(next), fySum = qs.filter(r=>qFY(r.date)===fy).reduce((s,r)=>s+(r.v[col]||0),0);
+  const all = rows.reduce((s,r)=>s+(r.v[col]||0),0);
   const slots = [qPrev(qPrev(qPrev(next))), qPrev(qPrev(next)), qPrev(next), next];
   const sv = slots.map(q=>{ const r = ziRow(q); return r && r.v[col]!=null ? r.v[col] : 0; }), mx = Math.max(1, ...sv);
   const curI = slots.map((q,i)=>sv[i]>0 ? i : -1).filter(i=>i>=0).pop();
@@ -7421,12 +7422,12 @@ function ziBankHtml(a, p){ p = p || {};
   const label = r => r.date >= ZI_QSTART ? qLabel(r.date) : r.date ? 'Up to ' + qMon(r.date) + ' ' + r.date.slice(0,4) : (r.fy || '').replace('-', '–');
   const meta = r => r.date >= ZI_QSTART ? 'Quarter' : 'Yearly';
   const incs = ((xd()||{}).incomes||[]).filter(i=>i.type==='Interest' && i.account===a.name);
-  const mLink = r => r.date >= ZI_QSTART && incs.some(i=>String(i.note||i.remark||'').trim()===qLabel(r.date));
+  const mLink = r => r.date >= ZI_QSTART;   // every quarter opens the quarter form: it updates the Interests row and each bank's Money entry
   const list = (pend ? `<div class="lr due"><span>${esc(qLabel(next))}<small>${next===due ? 'Due now' : 'From 25 ' + qMon(next)}</small></span><em>Pending</em></div>` : '')
     + rows.slice().reverse().slice(0, p.ziAll ? 99 : (pend ? 0 : 1)).map(r=>{ const inner = `<span>${esc(label(r))}<small>${meta(r)}</small></span><b class="num money ${r.v[col]>0?'':'nil'}">${r.v[col]>0 ? '+' + fINR2(r.v[col]) : fINR2(0)}</b>`;
       return mLink(r) ? `<button class="lr" data-zie="${r.date}">${inner}</button>` : `<div class="lr">${inner}</div>`; }).join('');   // a quarter saved from the app (its Money entry carries the quarter) opens to edit
   return `<div class="cbk zint"><div class="hd"><h2>Interest</h2>${pend ? `<button class="hadd" data-ziq="${next}">+ Add ${esc(qLabel(next).replace(/ \d+$/,''))}</button>` : ''}</div>
-    <div class="cbx"><div class="st"><div><span>All time</span><b class="num money">${fINR(all)}</b></div><div><span>${esc(fy)}</span><b class="num money">${fINR(fySum)}</b></div><div><span>Last quarter</span><b class="num money up">${lastQ ? fINR(lastQ.v[col]) : '—'}</b></div></div>
+    <div class="cbx"><div class="st"><div><span>All time</span><b class="num money">${fINR(all)}</b></div><div><span>${esc(fy)}</span><b class="num money">${fINR(fySum)}</b></div><div><span>Last quarter</span><b class="num money up">${lastQ && lastQ.v[col] ? fINR(lastQ.v[col]) : '—'}</b></div></div>
     <div class="bars">${sv.map((v,i)=>`<i class="${i===curI?'cur':''} ${v?'':'nil'}" style="height:${v ? Math.max(4, v/mx*100) : 2}%"></i>`).join('')}</div>
     <div class="bl">${slots.map(q=>`<span>${qMon(q)}</span>`).join('')}</div>
     <div class="lst">${list}${rows.length > (pend ? 0 : 1) ? `<button class="more" data-ziall>${p.ziAll ? 'Show fewer' : 'Show all ' + rows.length}</button>` : ''}</div></div></div>`;
