@@ -2353,7 +2353,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-05r';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-05s';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4772,9 +4772,8 @@ function renderPage(){
   if (p.kind==='acct'){
     $$('#page [data-step]').forEach(b=>b.onclick=()=>{ const L = p.list||[], n = L[L.indexOf(p.acc) + Number(b.dataset.step)];
       if (!n) return; Object.keys(p).forEach(k=>{ if (k!=='kind' && k!=='list') delete p[k]; }); p.acc = n; renderPage(); $('#page').scrollTop = 0; });
-    wireAccPage(p); wireCashback(p); $$('#page [data-ziq]').forEach(b=>b.onclick=()=>pushPage({ kind:'intq', q:b.dataset.ziq }));
-    $$('#page [data-zie]').forEach(b=>b.onclick=()=>{ const r = ziRow(b.dataset.zie), vals = {}; if (r) Object.keys(r.v).forEach(c=>{ if (r.v[c]>0) vals[c] = String(r.v[c]); });
-      pushPage({ kind:'intq', q:b.dataset.zie, vals, edit:true }); }); return; }
+    wireAccPage(p); wireCashback(p); $$('#page [data-ziq]').forEach(b=>b.onclick=()=>ziOpenQ(b.dataset.ziq));
+    $$('#page [data-zie]').forEach(b=>b.onclick=()=>ziOpenQ(b.dataset.zie)); return; }
   if (p.kind==='zakat' || p.kind==='interest'){ wireZiPage(p); return; }
   if (p.kind==='intq'){ wireZiQ(p); return; }
   if (p.kind==='constr'){ wireConstr(p); return; }
@@ -5507,7 +5506,7 @@ function renderSpend(){
   $$('#spBody [data-bankgo]').forEach(b=>b.onclick=()=>{ const h = [...document.querySelectorAll('#spBody .sechead h2')].find(x=>x.textContent.trim()==='Bank'); if (h) h.scrollIntoView({ behavior:'smooth', block:'start' }); });
   $$('#spBody [data-constr]').forEach(b=>b.onclick=()=>pushPage({ kind:'constr' }));
   $$('#spBody [data-zi]').forEach(b=>b.onclick=()=>pushPage({ kind:b.dataset.zi }));
-  $$('#spBody [data-ziq]').forEach(b=>b.onclick=()=>pushPage({ kind:'intq', q:b.dataset.ziq }));
+  $$('#spBody [data-ziq]').forEach(b=>b.onclick=()=>ziOpenQ(b.dataset.ziq));
   if ($('#cfOther')){ EL.cfs.rows = constrFund().rows.filter(r=>!r.acc).map(r=>r.item).filter(Boolean); renderEditList(EL.cfs); }
   $$('#spBody [data-txf]').forEach(b=>b.onclick=()=>{ txFilter = b.dataset.txf; renderSpend(); });
   $$('#spBody [data-fmenu]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTxMenu(b); });
@@ -7383,6 +7382,9 @@ const ziBanks = () => { const z = ziD(); return z && z.interest && z.interest.ba
 const ziLabel = c => { const b = ziBanks(); return (b && b.label && b.label[c]) || c; };
 // the Interests column for a Money account (INDmoney has none: it's on the Interest page only)
 function ziColOf(name){ const b = ziBanks(); return b && b.cols.includes(name) && !(b.label||{})[name] ? name : null; }
+// the quarter form, filled with what is already logged for that quarter (Add on a part-filled quarter edits it)
+function ziOpenQ(q){ const r = ziRow(q), vals = {}; if (r) Object.keys(r.v||{}).forEach(c=>{ if (r.v[c]>0) vals[c] = String(r.v[c]); });
+  pushPage({ kind:'intq', q, vals, edit: Object.keys(vals).length > 0 }); }
 const ziRow = q => { const b = ziBanks(); return b && b.rows.find(r=>r.date===q) || null; };
 const ziFilled = r => !!r && Object.keys(r.v||{}).length > 0;
 // the quarter waiting for its interest, if any (from its 25th until it's entered)
@@ -7557,7 +7559,7 @@ function wireZiPage(p){
   $$('#page [data-zall]').forEach(b=>b.onclick=()=>{ p['all'+b.dataset.zall] = true; again(); });
   $$('#page [data-zhist]').forEach(b=>b.onclick=()=>{ p.histOpen = !p.histOpen; again(); });
   $$('#page [data-zyr]').forEach(b=>b.onclick=()=>{ p.zyr = +b.dataset.zyr; p.allZ = false; again(); });
-  $$('#page [data-ziq]').forEach(b=>b.onclick=()=>pushPage({ kind:'intq', q:b.dataset.ziq }));
+  $$('#page [data-ziq]').forEach(b=>b.onclick=()=>ziOpenQ(b.dataset.ziq));
   $$('#page [data-zx]').forEach(b=>b.onclick=()=>{ const x = ZI_OPEN[+b.dataset.zx]; if (x) ziOpen(x); });
   $$('#page [data-zgive]').forEach(b=>b.onclick=()=>{
     const subs = ((xd().categories||[]).find(c=>/^donation$/i.test(c.name))||{}).subs || [];
