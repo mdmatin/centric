@@ -898,12 +898,10 @@ html[data-theme=dark] .xa-x{background:#636366}
 .daygroup{font-size:11.5px;color:var(--ink-3);font-weight:600;margin:16px 24px 7px;text-transform:uppercase;letter-spacing:.04em}
 
 /* ---------- fab + tabs ---------- */
-.fab{position:fixed;left:0;bottom:calc(10px + env(safe-area-inset-bottom));width:var(--fh,66px);height:var(--fh,66px);border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;z-index:6;
-  transform:translateX(var(--fx,-200px));box-shadow:0 14px 34px rgba(0,102,204,.22),0 3px 10px rgba(0,0,0,.08),inset 0 1px .5px rgba(255,255,255,.35)}
-/* + sits beside the bottom bar, as tall as it is (the bar shrinks while scrolling down and the button follows) */
-.fab svg{width:24px;height:24px}
+.fab{position:fixed;right:18px;bottom:calc(104px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;z-index:6;box-shadow:0 4px 16px rgba(0,102,204,.28)}
+.fab svg{width:23px;height:23px}
 /* SMS drafts: a second, quieter button beside +, with the count */
-.dfab{position:fixed;right:18px;bottom:calc(96px + env(safe-area-inset-bottom));width:44px;height:44px;border-radius:50%;background:var(--canvas);color:var(--blue);display:grid;place-items:center;z-index:6;
+.dfab{position:fixed;right:82px;bottom:calc(108px + env(safe-area-inset-bottom));width:44px;height:44px;border-radius:50%;background:var(--canvas);color:var(--blue);display:grid;place-items:center;z-index:6;
   box-shadow:0 4px 14px rgba(0,0,0,.14),0 0 0 1px var(--card-edge)}
 html[data-theme=dark] .dfab{background:#2c2c2e;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .dfab svg{width:21px;height:21px}
@@ -1013,10 +1011,8 @@ html[data-theme=dark] .dmenu{background:#2c2c2e;box-shadow:0 14px 40px rgba(0,0,
    All four tabs stay tappable — only the labels go. */
 .tabs .tl{display:block;overflow:hidden;max-height:16px;opacity:1;
   transition:max-height .3s cubic-bezier(.32,.72,0,1), opacity .22s ease}
-/* with + beside it the bar is a little narrower, so the pair fits a 375–390pt phone with room at the sides */
-body:not(.selecting) .tabs:not(.selbar) button{min-width:64px}
 .tabs.min{padding:8px 8px}
-.tabs.min button,body:not(.selecting) .tabs.min:not(.selbar) button{min-width:50px}
+.tabs.min button{min-width:50px}
 .tabs.min .tl{max-height:0;opacity:0}
 .tabs.min .tabblob{height:calc(100% - 16px);border-radius:var(--r-pill)}
 .tabs.min .tabblob.moving{height:56px;border-radius:var(--r-pill)}
@@ -2403,7 +2399,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07f';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07g';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4044,20 +4040,7 @@ function tradeMore(open){ $('#tMoreBox').hidden = !open; $('#tMore').setAttribut
 $('#tMore').onclick = ()=>tradeMore($('#tMoreBox').hidden);
 $('#btnClose').onclick = closeSheet;
 $('#backdrop').onclick = ()=>{ if ($('#xsheet').classList.contains('show')) closeXSheet(); else closeSheet(); };
-// + adds an expense everywhere, except on Holdings (and its Trades list), where it adds a trade
-const fabTrade = () => activeView==='break' || activeView==='txn';
-$('#fab').onclick = ()=> fabTrade() ? openSheet(null) : openXSheet(null, 'expense');
-// keep + beside the bar and as tall as it, resting or minimised; the pair stays centred
-function placeFab(){
-  const nav = $('.tabs'), f = $('#fab'); if (!nav || !f) return;
-  const on = !f.hidden && getComputedStyle(f).display!=='none' && nav.offsetHeight > 0, gap = 10;   // fixed elements have no offsetParent
-  const h = nav.offsetHeight; nav.style.marginLeft = on ? (-(h + gap)/2) + 'px' : '';
-  if (!on) return;
-  const r = nav.getBoundingClientRect();
-  f.style.setProperty('--fh', h + 'px'); f.style.setProperty('--fx', (r.right + gap) + 'px');
-}
-try{ new ResizeObserver(placeFab).observe($('.tabs')); }catch(e){}
-addEventListener('resize', placeFab);
+$('#fab').onclick = ()=> activeView==='spend' ? openXSheet(null, 'expense') : openSheet(null);
 
 /* ---------- scan a screenshot ---------- */
 $('#btnScan').onclick = ()=>{ $('#fileShot').value=''; $('#fileShot').click(); };
@@ -4598,8 +4581,8 @@ function show(v, sec){
   $('.nav').classList.toggle('inner', v==='trend' || v==='txn');
   $('.nav').dataset.v = isAcc ? 'acc' : v; requestAnimationFrame(navFold);      // Trends looks like an inner page: back, centred title
   $$('.view').forEach(s=>s.classList.toggle('active',s.id==='v-'+v));
-  $('#title').textContent=TITLES[isAcc ? 'acc' : v]; $('#spSeg').hidden = isAcc; paintDate(); $('#fab').hidden = false; paintDfab(); placeFab();
-  $('#fab').setAttribute('aria-label', v==='break' || v==='txn' ? 'Add trade' : 'Add expense');
+  $('#title').textContent=TITLES[isAcc ? 'acc' : v]; $('#spSeg').hidden = isAcc; paintDate(); $('#fab').hidden = (v!=='txn' && v!=='spend' && v!=='break') || isAcc; paintDfab();
+  $('#fab').setAttribute('aria-label', v==='spend' ? 'Add expense' : 'Add transaction');
   if (v==='break' && prevView!=='break') showHoldSec('assets');    // Holdings always opens on Assets
   if (v==='spend'){ spSec = sec || 'list'; if (prevView!=='spend'){ spMonth = ymNow(); setTimeout(pollDrafts, 400); } renderSpend();   // Spend always opens on Activity
     if (!X || Date.now() - X.at > X_STALE) loadExpenses(); else pollDrafts(); }
