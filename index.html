@@ -2362,7 +2362,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07a';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07b';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6337,7 +6337,7 @@ function wireXPage(p){
    and transfers in, minus expenses paid from it and transfers out — counting
    only entries on or after the account's opening date. A card's balance is
    what you owe, so it runs negative. */
-const ACC_GROUPS = [['card','Credit cards'],['bank','Bank'],['wallet','Wallets'],['construction','Construction']];   // cards on top
+const ACC_GROUPS = [['card','Credit cards'],['bank','Banks'],['wallet','Wallets'],['construction','Construction']];   // cards on top
 // a "Cash" account (type Cash in Money › Accounts) sits with the wallets, not the banks
 // physical cash: grouped with the wallets, but spent from like a bank account
 // Cash is a Wallet-type account now (2026-11-06): known by its name; an older sheet's "Cash" type still counts
