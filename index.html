@@ -1323,6 +1323,15 @@ html[data-theme=dark] .bk-ivrow .bk-ic.off{color:#ff9f0a}
 .bkpill .bk-v{font-size:14.5px;font-weight:600;white-space:nowrap}
 .bkpill .bk-chev{flex:none;width:14px;height:14px;color:var(--ink-3);margin-left:auto}
 .bkpill .bk-ic.off{background:rgba(255,159,10,.16);color:#c77700}
+/* a daily log that never got written: a pill on Overview, the details on Net worth */
+#logWarn .logwarn{margin:12px 16px 0}
+.logwarnc{padding:14px 16px;margin-bottom:12px}
+.logwarnc .lh{display:flex;align-items:center;gap:10px;font-size:15px;letter-spacing:-.25px}
+.logwarnc .bk-ic{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center}.logwarnc .bk-ic svg{width:13px;height:13px}
+.logwarnc .bk-ic.off{background:rgba(255,159,10,.16);color:#c77700} html[data-theme=dark] .logwarnc .bk-ic.off{color:#ff9f0a}
+.logwarnc ul{margin:10px 0 0;padding:0 0 0 34px;font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+.logwarnc li + li{margin-top:6px}.logwarnc li b{color:var(--ink);font-weight:600}
+.logwarnc .ack{display:block;margin:12px 0 0 34px;color:var(--blue);font-size:14px;font-weight:600;background:none;border:0;padding:0;cursor:pointer}
 .bkpill.off .bk-t,.bkpill.off .bk-v{color:#c77700}
 html[data-theme=dark] .bkpill .bk-ic.off,html[data-theme=dark] .bkpill.off .bk-t,html[data-theme=dark] .bkpill.off .bk-v{color:#ff9f0a}
 .books{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;margin-top:12px}
@@ -2231,6 +2240,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
         <div class="kpirow lcr" id="kpis"></div>
       </div>
 
+      <div id="logWarn"></div>
       <div class="hentry" id="homeMonth"></div>
       <div class="hwrap" id="homeWrap"></div>
       <div class="qact" id="homeQa"></div>
@@ -2290,6 +2300,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
       <div class="sechead"><h2>Monthly gains</h2></div>
       <div class="card nwmg" id="nwMonthly"></div>
       <div class="sechead"><h2>Change</h2></div>
+      <div id="logWarnNw"></div>
       <div class="card nwp nwd" id="nwDays"></div>
       <div class="card dl" id="nwDayList"></div>
       <div class="sechead"><h2>What moved it</h2></div>
@@ -2388,7 +2399,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07c';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07d';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2560,6 +2571,7 @@ function render(redrawPage){
   renderAssets(d.holdings, d.netWorth && d.netWorth.head && d.netWorth.head.usdInr);
   renderBreakdown(d.breakdown, d.buckets);
   renderTrends(d.daily, d.monthly);
+  paintLogGaps(d.daily);
   renderTxns(d.transactions);
   fillLists(d.lists);
   // an open detail page only redraws when you pulled to refresh
@@ -3773,6 +3785,42 @@ document.addEventListener('click', ev=>{
   const k = r.dataset.dk; if (DSEL.has(k)) DSEL.delete(k); else DSEL.add(k);
   if (!DSEL.size) dselExit(); else dselPaint();
 }, true);
+
+/* Missing daily logs. The 3:15 AM chain writes one Daily Change row a night (the row dated D holds
+   the close of D−1). A row that never got written leaves a day the app can't show on its own: the
+   next day's change covers both. Overview and Net worth flag it until you tap Got it; a row still
+   missing after 6 AM today means last night's chain hasn't logged yet (stuck or still running). */
+function logGaps(daily){
+  const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const have = new Set((daily||[]).filter(p=>p && p.date && p.netWorth!=null).map(p=>p.date)); if (!have.size) return [];
+  const dates = [...have].sort(), first = dates[0], out = [], now = new Date(), today = ymd(now);
+  const d = new Date(now); d.setHours(0,0,0,0); d.setDate(d.getDate() - 30);
+  for (; ymd(d) <= today; d.setDate(d.getDate()+1)){
+    const k = ymd(d); if (k < first || have.has(k)) continue;
+    if (k===today && now.getHours() < 6) continue;           // tonight's run hasn't had its chance yet
+    const m = new Date(d); m.setDate(m.getDate()-1);         // the day whose close that row would hold
+    out.push({ log:k, day:ymd(m), today:k===today });
+  }
+  const ack = new Set(load('inv.logAck') || []);
+  return out.filter(g=>!ack.has(g.log));
+}
+function paintLogGaps(daily){
+  const gaps = logGaps(daily), lab = s => new Date(s+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  const home = $('#logWarn'), nwEl = $('#logWarnNw'); if (!home || !nwEl) return;
+  if (!gaps.length){ home.innerHTML = ''; nwEl.innerHTML = ''; return; }
+  const stuck = gaps.find(g=>g.today), past = gaps.filter(g=>!g.today);
+  const title = stuck && !past.length ? 'Last night’s log hasn’t run' : past.length===1 && !stuck ? `${lab(past[0].day)} wasn’t logged` : `${gaps.length} days not logged`;
+  home.innerHTML = `<button class="card bkpill off bankrow logwarn" data-logwarn><span class="bk-ic off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${BK_WARN}"/></svg></span>
+    <span class="bk-t">${title}</span><svg class="bk-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
+  const lines = [
+    stuck ? `<li><b>${lab(stuck.day)}</b>: today’s 3:15 AM log hasn’t been written. The nightly run may be stuck: check <i>Refresh › Last nightly run</i> in the sheet. It retries on its own at 5:15 AM and at noon.</li>` : '',
+    ...past.map(g=>{ const n = new Date(g.day+'T00:00:00'); n.setDate(n.getDate()+1);
+      return `<li><b>${lab(g.day)}</b>: the night’s log was never written, so <b>${n.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</b>’s change covers both days. It can’t be filled in later.</li>`; })].filter(Boolean).join('');
+  nwEl.innerHTML = `<div class="card logwarnc"><div class="lh"><span class="bk-ic off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${BK_WARN}"/></svg></span><b>${title}</b></div>
+    <ul>${lines}</ul>${past.length ? '<button class="ack" data-logack>Got it</button>' : ''}</div>`;
+  const go = home.querySelector('[data-logwarn]'); if (go) go.onclick = ()=>{ show('trend'); setTimeout(()=>{ const c = $('#logWarnNw'); if (c) c.scrollIntoView({ behavior:'smooth', block:'center' }); }, 60); };
+  const ack = nwEl.querySelector('[data-logack]'); if (ack) ack.onclick = ()=>{ const a = new Set(load('inv.logAck') || []); past.forEach(g=>a.add(g.log)); save('inv.logAck', [...a].slice(-60)); paintLogGaps(daily); };
+}
 
 function renderTxns(txns){
   const q=($('#q').value||'').toLowerCase().trim();
