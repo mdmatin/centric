@@ -347,6 +347,32 @@ main{padding:0}
 .dl .z{text-align:right;font-size:15px;font-weight:600;letter-spacing:-.2px;white-space:nowrap}
 .dl .z .p{font-weight:500;font-size:13px}
 .dl .z .arrow{font-size:.8em}
+/* Net worth › Change: bars, a summary row, a cleaner list (2026-11-07) */
+.spstats.dsum{margin:14px 0;padding-top:0;border-top:0}
+.dsum b.up{color:var(--up)}.dsum b.down{color:var(--down)}
+.dbars{position:relative;height:130px;margin:10px 0 6px;display:flex;gap:2px;touch-action:pan-y;cursor:pointer}
+.dbars .zl{position:absolute;left:0;right:0;top:var(--z);border-top:1px dashed var(--hairline);z-index:0}
+.dbars span{position:relative;flex:1;min-width:0}
+.dbars span i{position:absolute;left:0;right:0;border-radius:3px;opacity:.38;transition:opacity .15s}
+.dbars span i.up{background:var(--up)}.dbars span i.dn{background:var(--down)}
+.dbars span.on i{opacity:1}
+.dbars.two span i.iv{right:50%;background:var(--blue)}.dbars.two span i.cs{left:50%;background:var(--cashc)}
+.dvseg{display:flex;margin:14px 0 0;border-bottom:1px solid var(--hairline)}   /* Net worth · Investments · Combined: plain tabs, the chosen one underlined */
+.dvseg button{flex:1;text-align:center;position:relative;background:none;border:0;padding:0 0 9px;font-size:14px;font-weight:500;letter-spacing:-.2px;color:var(--ink-3);cursor:pointer}
+.dvseg button.on{color:var(--ink);font-weight:600}
+.dvseg button.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--ink)}
+.dsum i.dk{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}.dsum i.dk.iv{background:var(--blue)}.dsum i.dk.cs{background:var(--cashc)}
+.dbars span.lv i{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.35) 0 3px,transparent 3px 6px)}
+.dl .dlh{display:flex;justify-content:space-between;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);padding:10px 0 2px}
+.dl .dlh + .r{border-top:0}
+.dl .dr{cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.dl .dr.cur{background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--blue) 7%,transparent) 12%,color-mix(in srgb,var(--blue) 7%,transparent) 88%,transparent);margin:0 -16px;padding-left:16px;padding-right:16px}
+.dl .dr .z .p{color:inherit;opacity:.75;margin-left:2px}
+body.dselecting .dl .dr{gap:12px}
+body.dselecting .dl .dr::before{content:"";flex:0 0 22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1.6px var(--ink-3);transition:background-color .15s,box-shadow .15s}
+body.dselecting .dl .dr .a{flex:1}
+body.dselecting .dl .dr.picked::before{box-shadow:none;background:var(--blue) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center/14px no-repeat}
+#dselBar .st b.up{color:var(--up)}#dselBar .st b.down{color:var(--down)}
 .dl .more{display:block;width:100%;text-align:center;color:var(--blue);font-size:14px;padding:12px 0 8px;border-top:1px solid var(--hairline)}
 .nwhero .k{font-size:13px;color:var(--ink-2);font-weight:400;letter-spacing:-.1px}
 .bghero .k{font-size:12px}.bghero .pg-big{font-size:26px;letter-spacing:-.6px;margin-top:1px}   /* Budgets: the same size as Spend › Budget's Remaining */
@@ -2362,7 +2388,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07b';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07c';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3576,7 +3602,7 @@ function renderBucketList(bk, sel){
 // Net worth page (opens from the chevron on Overview): what it is made of, what
 // moved it over a period, highs and lows, then the monthly market gains
 let nwMoveR = load('inv.nwMove') || '3M';
-let nwDaySel = null, nwDayAll = false, nwPer = load('inv.nwPer') || 'D';   // Day by day: the tapped bar, and whether the list shows every day
+let nwDaySel = null, nwDayAll = false, nwPer = load('inv.nwPer') || 'D', nwChgV = load('inv.nwChgV') || 'both';   // nwChgV: what the change shows — net worth, investments, or both side by side   // Day by day: the tapped bar, and whether the list shows every day
 const NW_MOVE = ['1M','3M','YTD','1Y','All'];
 function renderTrends(daily, monthly){
   const d = D && D.data, nw = d && d.netWorth, h = (nw && nw.head) || {}, cash = liveCash();
@@ -3632,13 +3658,14 @@ function renderTrends(daily, monthly){
   const mkt = all.map(p=>({ ...p, date: prevDay(p.date) }));
   const today = ymd(new Date()), lastP = mkt[mkt.length-1], totA = ((nw && nw.assets) || []).find(a=>a.isTotal);
   if (lastP && h.netWorthDay!=null && lastP.date < today)
-    mkt.push({ date: today, live: true, netWorth: lastP.netWorth + h.netWorthDay,
+    mkt.push({ date: (()=>{ const d = new Date(lastP.date+'T00:00:00'); d.setDate(d.getDate()+1); return ymd(d); })(),   // the day after the last log: past midnight it is still that day's move
+      live: true, netWorth: lastP.netWorth + h.netWorthDay,
       investment: lastP.investment!=null && totA && totA.dayChange!=null ? lastP.investment + totA.dayChange : null });
   const ends = []; mkt.forEach(p=>{ const k = perKey(p); if (ends.length && ends[ends.length-1].k===k) ends[ends.length-1] = { k, p }; else ends.push({ k, p }); });
   // the first period counts from the first logged day (so July shows, from 3 Jul)
   const days = ends.map((e,i)=>({ e, q: i ? ends[i-1].p : mkt[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, chg = p.netWorth - q.netWorth;
     const inv = p.investment!=null && q.investment!=null ? p.investment - q.investment : null;
-    return { date:e.k, last:p.date, live:!!p.live, nw:p.netWorth, chg, pct: q.netWorth ? chg/q.netWorth : null, inv, cash: inv==null ? null : chg - inv }; });
+    return { date:e.k, last:p.date, live:!!p.live, nw:p.netWorth, chg, pct: q.netWorth ? chg/q.netWorth : null, inv, invPct: inv!=null && q.investment ? inv/q.investment : null, cash: inv==null ? null : chg - inv }; });
   const dd = s => new Date(s+'T00:00:00');
   const dLab = x => { if (nwPer==='D') return dd(x.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
     if (nwPer==='M') return dd(x.date+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -3648,47 +3675,104 @@ function renderTrends(daily, monthly){
   const split = x => [x.inv!=null && Math.round(x.inv) ? `Inv ${fCompact(x.inv).replace(/^₹/,'+₹')}` : '', x.cash!=null && Math.round(x.cash) ? `Cash ${fCompact(x.cash).replace(/^₹/,'+₹')}` : ''];
   const PER = [['D','Daily',30,'days'],['W','Weekly',12,'weeks'],['M','Monthly',12,'months']], per = PER.find(x=>x[0]===nwPer);
   const pseg = `<div class="seg">${PER.map(x=>`<button data-per="${x[0]}" class="${x[0]===nwPer?'on':''}">${x[1]}</button>`).join('')}</div>`;
-  // Daily change as a line: zero is the dashed baseline, green above it, red below; tap or drag to pick a day
-  const dLine = b => { const n = b.length, vs = b.map(y=>y.chg), hi = Math.max(0, ...vs), lo = Math.min(0, ...vs), sp = (hi-lo) || 1;
-    const X = i => n>1 ? i/(n-1)*100 : 50, Y = v => 6 + (hi - v)/sp*88, z = Y(0).toFixed(2);
-    const pts = vs.map((v,i)=>X(i).toFixed(2)+','+Y(v).toFixed(2)), d = 'M'+pts.join('L'), ar = d+'L100,'+z+'L0,'+z+'Z';
-    const si = Math.max(0, b.findIndex(y=>y.date===nwDaySel)), sv = vs[si];
-    return `<div class="dline" data-dline><svg viewBox="0 0 100 100" preserveAspectRatio="none">
-      <defs><clipPath id="dlU"><rect x="0" y="0" width="100" height="${z}"/></clipPath><clipPath id="dlD"><rect x="0" y="${z}" width="100" height="${(100-z).toFixed(2)}"/></clipPath></defs>
-      <path class="fu" d="${ar}" clip-path="url(#dlU)"/><path class="fd" d="${ar}" clip-path="url(#dlD)"/>
-      <line class="z" x1="0" x2="100" y1="${z}" y2="${z}" vector-effect="non-scaling-stroke"/>
-      <line class="vl" x1="${X(si).toFixed(2)}" x2="${X(si).toFixed(2)}" y1="0" y2="100" vector-effect="non-scaling-stroke"/>
-      <path class="ln" d="${d}" vector-effect="non-scaling-stroke"/></svg>
-      <i class="dot ${sv<0?'down':'up'}" style="left:${X(si).toFixed(2)}%;top:${Y(sv).toFixed(2)}%"></i></div>`; };
+  // Change as bars: one per day / week / month, green above the zero line, red below; tap or drag to pick
+  const V = nwChgV, val = y => V==='inv' ? (y.inv ?? 0) : y.chg, vpct = y => V==='inv' ? y.invPct : y.pct;
+  const dBars = b => { const vs = V==='both' ? b.flatMap(y=>[y.inv ?? 0, y.cash ?? 0]) : b.map(val), hi = Math.max(0, ...vs), lo = Math.min(0, ...vs), sp = (hi-lo) || 1, z = hi/sp*100;
+    const bar = (v, c) => { const h = Math.max(Math.abs(v)/sp*100, v ? 1.5 : 0);
+      return `<i class="${c || (v<0?'dn':'up')}" style="${v<0?`top:${z.toFixed(2)}%`:`bottom:${(100-z).toFixed(2)}%`};height:${h.toFixed(2)}%"></i>`; };
+    return `<div class="dbars${V==='both'?' two':''}" data-dbars style="--z:${z.toFixed(2)}%"><i class="zl"></i>${b.map(y=>`<span class="${y.date===nwDaySel?'on':''}${y.live?' lv':''}">${
+      V==='both' ? bar(y.inv ?? 0, 'iv') + bar(y.cash ?? 0, 'cs') : bar(val(y))}</span>`).join('')}</div>`; };
   if (days.length){
-    const b30 = days.slice(-per[2]), mx = Math.max(...b30.map(x=>Math.abs(x.chg)), 1);
+    const win = days.slice(-per[2]);
     if (nwDaySel==null || !days.some(x=>x.date===nwDaySel)) nwDaySel = days[days.length-1].date;
     const x = days.find(y=>y.date===nwDaySel), sp = split(x).filter(Boolean);
     const sofar = x.live ? ' <span class="faint">· so far</span>' : '';
-    $('#nwDays').innerHTML = pseg + `<div class="dsel"><div><div class="k">${esc(dLab(x))}${sofar}</div>
-        <div class="v num money ${cls(x.chg)}">${fINRs(x.chg)}${x.pct!=null?` <small>(${fPct(Math.abs(x.pct),false)})</small>`:''}</div></div>
-        <div class="s num money">${sp.join('<br>')}</div></div>
-      ${dLine(b30)}
-      <div class="dax"><span>${esc(axLab(b30[0]))}</span><span>Last ${b30.length} ${per[3]}</span><span>${esc(axLab(b30[b30.length-1]))}</span></div>`;
-    const src = nwPer==='D' ? b30 : days;   // daily: just the graph's last 30 days; weekly and monthly: everything
-    const list = src.filter(y=>y.date!==nwDaySel).reverse(), shown = nwDayAll ? list : list.slice(0,5);
-    $('#nwDayList').innerHTML = shown.map(y=>{ const t = split(y).filter(Boolean).join(' · ');
-      return `<div class="r"><div class="a">${esc(dLab(y))}<small class="num money">${fINR(y.nw)}</small></div>
-        <div class="z num money ${cls(y.chg)}"><span class="arrow">${y.chg<0?'▼':'▲'}</span> ${fINR(Math.abs(y.chg))}${y.pct!=null?` <span class="p">(${fPct(Math.abs(y.pct),false)})</span>`:''}${t?`<small>${t}</small>`:''}</div></div>`; }).join('')
-      + (list.length > 5 ? `<button class="more" data-dall>${nwDayAll ? 'Show fewer' : (nwPer==='D' ? `Show all ${b30.length} days` : 'Show all ' + per[3])}</button>` : '');
-    $('#nwDayList').hidden = !list.length;
-    const dl = $('#nwDays [data-dline]');
-    if (dl){ const pick = x => { const el = $('#nwDays [data-dline]') || dl, r = el.getBoundingClientRect(); if (!r.width) return; const k = Math.round(Math.min(1, Math.max(0, (x - r.left)/r.width)) * (b30.length-1));
-        const t = b30[k] && b30[k].date; if (t && t!==nwDaySel){ nwDaySel = t; haptic(4); renderTrends(daily,monthly); } };
+    // the window at a glance: what it added up to, and how many periods went up and down
+    const net = win.reduce((a,y)=>a+val(y),0), ups = win.filter(y=>val(y)>0).length, dns = win.filter(y=>val(y)<0).length;
+    const best = win.reduce((a,y)=>val(y)>val(a)?y:a, win[0]), worst = win.reduce((a,y)=>val(y)<val(a)?y:a, win[0]);
+    const sInv = win.reduce((a,y)=>a+(y.inv ?? 0),0), sCash = win.reduce((a,y)=>a+(y.cash ?? 0),0);
+    const vseg = `<div class="dvseg" role="tablist">${[['both','Combined'],['nw','Net worth'],['inv','Investments']].map(([k,l])=>`<button data-chv="${k}" class="${k===V?'on':''}">${l}</button>`).join('')}</div>`;
+    const other = y => V==='inv' ? [`Net worth ${fCompact(y.chg).replace(/^₹/,'+₹')}`] : split(y).filter(Boolean);
+    $('#nwDays').innerHTML = pseg + vseg + (V==='both' ? `
+      <div class="spstats lcr dsum"><div><span>Net worth</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
+        <div><span><i class="dk iv"></i>Investments</span><b class="num money ${cls(sInv)}">${fChg(sInv)}</b></div><div><span><i class="dk cs"></i>Cash</span><b class="num money ${cls(sCash)}">${fChg(sCash)}</b></div></div>` : `
+      <div class="spstats lcr dsum"><div><span>${win.length} ${per[3]}</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
+        <div><span>Up</span><b class="num up">${ups}</b></div><div><span>Down</span><b class="num down">${dns}</b></div></div>`) + `
+      <div class="dsel"><div><div class="k">${esc(dLab(x))}${sofar}</div>
+        <div class="v num money ${cls(val(x))}">${fINRs(val(x))}${vpct(x)!=null?` <small>(${fPct(Math.abs(vpct(x)),false)})</small>`:''}</div></div>
+        <div class="s num money">${other(x).join('<br>')}</div></div>
+      ${dBars(win)}
+      <div class="dax"><span>${esc(axLab(win[0]))}</span><span>Best ${esc(axLab(best))} · Worst ${esc(axLab(worst))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>`;
+    // every period, newest first; tap one to see it above, long-press to add several up
+    const src = (nwPer==='D' ? win : days).slice().reverse(), shown = nwDayAll ? src : src.slice(0,7);
+    window.__nwRows = new Map(days.map(y=>[y.date, y]));
+    $('#nwDayList').innerHTML = `<div class="dlh"><span>${nwPer==='D'?'Day':nwPer==='W'?'Week':'Month'}</span><span>${V==='inv'?'Investments':'Net worth'}</span></div>` + shown.map(y=>{ const t = other(y).join(' · ');
+      return `<div class="r dr${y.date===nwDaySel?' cur':''}${DSEL && DSEL.has(y.date)?' picked':''}" data-dk="${esc(y.date)}"><div class="a">${esc(dLab(y))}${y.live?' <span class="faint">so far</span>':''}<small class="num money">${fINR(y.nw)}</small></div>
+        <div class="z num money ${cls(val(y))}">${fINRs(val(y))}${vpct(y)!=null?` <span class="p">${fPct(Math.abs(vpct(y)),false)}</span>`:''}${t?`<small>${t}</small>`:''}</div></div>`; }).join('')
+      + (src.length > 7 ? `<button class="more" data-dall>${nwDayAll ? 'Show fewer' : 'Show all ' + src.length + ' ' + per[3]}</button>` : '');
+    $('#nwDayList').hidden = !src.length;
+    const dl = $('#nwDays [data-dbars]');
+    if (dl){ const pick = cx => { const el = $('#nwDays [data-dbars]') || dl, r = el.getBoundingClientRect(); if (!r.width) return; const k = Math.min(win.length-1, Math.max(0, Math.floor((cx - r.left)/r.width * win.length)));
+        const t = win[k] && win[k].date; if (t && t!==nwDaySel){ nwDaySel = t; haptic(4); renderTrends(daily,monthly); } };
       dl.onpointerdown = e => { window.__dlPick = pick; pick(e.clientX); };
       if (!window.__dlWired){ window.__dlWired = true;
         document.addEventListener('pointermove', e => { if (window.__dlPick) window.__dlPick(e.clientX); });
         ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t, () => { window.__dlPick = null; })); } }
     const m = $('#nwDayList [data-dall]'); if (m) m.onclick=()=>{ nwDayAll=!nwDayAll; renderTrends(daily,monthly); };
+    window.__nwRerender = ()=>renderTrends(daily,monthly);
+    $$('#nwDays [data-chv]').forEach(b=>b.onclick=()=>{ if (b.dataset.chv===nwChgV) return; nwChgV = b.dataset.chv; save('inv.nwChgV', nwChgV); renderTrends(daily,monthly); });
+    if (DSEL) dselPaint();
   } else { $('#nwDays').innerHTML = pseg + '<div class="empty">Not enough days logged yet</div>'; $('#nwDayList').hidden = true; }
-  $$('#nwDays [data-per]').forEach(b=>b.onclick=()=>{ if (b.dataset.per===nwPer) return; nwPer=b.dataset.per; save('inv.nwPer',nwPer); nwDaySel=null; nwDayAll=false; renderTrends(daily,monthly); });
+  $$('#nwDays [data-per]').forEach(b=>b.onclick=()=>{ if (b.dataset.per===nwPer) return; dselExit(); nwPer=b.dataset.per; save('inv.nwPer',nwPer); nwDaySel=null; nwDayAll=false; renderTrends(daily,monthly); });
 
 }
+
+/* Net worth › Change: long-press a row to start picking; taps then add or remove rows, and the bar
+   at the bottom sums the picked changes (with their investments / cash split). A plain tap shows
+   that period above the bars. */
+var DSEL = null, dselEat = false, dselPress = null;
+const DSEL_ROW = '#nwDayList .dr[data-dk]';
+function dselStart(r){
+  DSEL = new Set([r.dataset.dk]); document.body.classList.add('selecting', 'dselecting'); haptic(10);
+  let bar = $('#dselBar');
+  if (!bar){ bar = document.createElement('div'); bar.id = 'dselBar'; bar.className = 'tabs selbar';
+    bar.innerHTML = `<button class="sx" data-dselx aria-label="Done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="st"><b class="num money" id="dselTot"></b><small id="dselCnt"></small></div>`;
+    document.body.append(bar); bar.querySelector('[data-dselx]').onclick = dselExit; }
+  dselPaint();
+}
+function dselExit(){
+  if (!DSEL) return; DSEL = null; document.body.classList.remove('selecting', 'dselecting');
+  const bar = $('#dselBar'); if (bar) bar.remove();
+  $$(DSEL_ROW).forEach(r=>r.classList.remove('picked'));
+}
+function dselPaint(){
+  if (!DSEL) return;
+  $$(DSEL_ROW).forEach(r=>r.classList.toggle('picked', DSEL.has(r.dataset.dk)));
+  const M = window.__nwRows || new Map(), it = [...DSEL].map(k=>M.get(k)).filter(Boolean);
+  const chg = it.reduce((a,y)=>a+y.chg,0), inv = it.every(y=>y.inv!=null) ? it.reduce((a,y)=>a+y.inv,0) : null, sum = nwChgV==='inv' ? (inv ?? 0) : chg;
+  const unit = nwPer==='D' ? 'day' : nwPer==='W' ? 'week' : 'month';
+  const tot = $('#dselTot'), cnt = $('#dselCnt');
+  if (tot){ tot.textContent = fINRs(sum); tot.className = 'num money ' + cls(sum); }
+  if (cnt) cnt.textContent = `${it.length} ${unit}${it.length===1?'':'s'}` + (!it.length ? '' : nwChgV==='inv' ? ` · Net worth ${fChg(chg)}` : inv!=null ? ` · Inv ${fChg(inv)} · Cash ${fChg(chg-inv)}` : '');
+}
+document.addEventListener('pointerdown', ev=>{
+  const r = ev.target.closest && ev.target.closest(DSEL_ROW); if (!r || DSEL) return;
+  dselPress = { x: ev.clientX, y: ev.clientY, t: setTimeout(()=>{ dselPress = null; dselEat = true; dselStart(r); }, 450) };
+}, true);
+const dselCancel = ()=>{ if (dselPress){ clearTimeout(dselPress.t); dselPress = null; } };
+document.addEventListener('pointermove', ev=>{ if (dselPress && Math.hypot(ev.clientX-dselPress.x, ev.clientY-dselPress.y) > 10) dselCancel(); }, true);
+['pointerup','pointercancel','scroll'].forEach(t=>document.addEventListener(t, dselCancel, true));
+document.addEventListener('contextmenu', ev=>{ if (ev.target.closest && ev.target.closest(DSEL_ROW)) ev.preventDefault(); }, true);
+document.addEventListener('click', ev=>{
+  const r = ev.target.closest && ev.target.closest(DSEL_ROW);
+  if (dselEat){ dselEat = false; if (r){ ev.preventDefault(); ev.stopPropagation(); return; } }
+  if (!r) return;
+  ev.preventDefault(); ev.stopPropagation();
+  if (!DSEL){ if (r.dataset.dk !== nwDaySel){ nwDaySel = r.dataset.dk; haptic(4); if (window.__nwRerender) window.__nwRerender(); } return; }
+  const k = r.dataset.dk; if (DSEL.has(k)) DSEL.delete(k); else DSEL.add(k);
+  if (!DSEL.size) dselExit(); else dselPaint();
+}, true);
 
 function renderTxns(txns){
   const q=($('#q').value||'').toLowerCase().trim();
@@ -4435,6 +4519,7 @@ function holdScroll(y){
 }
 function show(v, sec){
   if (SEL) selExit();
+  if (typeof DSEL!=='undefined' && DSEL) dselExit();
   if (v==='acc'){ v = 'spend'; sec = 'accounts'; }                // the Accounts tab is Spend's accounts section, on its own
   if (v==='spend' && sec!=='accounts' && activeView==='spend' && spSec==='accounts') activeView = 'acc';   // Accounts → Spend counts as a fresh open
   { const pad = $('#homePad'); if (pad) pad.style.height = '0px'; }
