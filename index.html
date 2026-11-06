@@ -761,7 +761,7 @@ html[data-theme=dark] .xfresh{background:rgba(41,151,255,.28);box-shadow:0 0 0 3
 #xsheet{display:flex;flex-direction:column;top:0;height:100vh;height:100dvh;max-height:none;border-radius:0;overflow:hidden;padding:calc(6px + env(safe-area-inset-top)) 0 0;background:var(--canvas)}
 #xsheet .grab{display:none}
 .xhd{position:relative;display:flex;justify-content:flex-start;align-items:center;min-height:44px;padding:0 16px 8px;flex:none}
-.xhd h3{position:absolute;left:50%;top:calc(50% - 4px);transform:translate(-50%,-50%);font-size:17px;font-weight:600;letter-spacing:-.4px;margin:0;white-space:nowrap}
+#xsheet .xhd h3{position:absolute;left:50%;top:calc(50% - 4px);transform:translate(-50%,-50%);display:block;font-family:var(--font-disp);font-size:17px;font-weight:600;letter-spacing:-.4px;margin:0;white-space:nowrap}
 .xhd button{font-size:17px;color:var(--blue)}
 .xscroll{flex:1;min-height:0;overflow:auto;padding:0 16px 16px;overscroll-behavior:contain}
 .xseg{margin-bottom:10px}
@@ -2399,7 +2399,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07g';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07i';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -8081,10 +8081,14 @@ function openXSheet(e, mode, tpl){
   xOpenCat = ''; xErrMsg = '';
   xField = s && s.amount ? null : (/^false$/i.test(DEF('form.keypad')) ? null : 'amount'); xStep = s && s.amount ? 3 : 1;
   paintXSheet();
-  $('#backdrop').hidden=false; $('#xsheet').hidden=false;
+  $('#backdrop').hidden=false; $('#xsheet').hidden=false; xBarTint(true);
   requestAnimationFrame(()=>{ $('#backdrop').classList.add('show'); $('#xsheet').classList.add('show'); });
 }
-function closeXSheet(){ xRecPend = null; xKitePay = false; xDraftPend = null; $('#backdrop').classList.remove('show'); $('#xsheet').classList.remove('show');
+// the phone's status bar takes the add page's white (or dark) while it's open, not the grey of the page behind
+function xBarTint(on){ const m = document.querySelector('meta[name=theme-color]'); if (!m) return;
+  if (on){ m.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff'); return; }
+  const dark = document.documentElement.getAttribute('data-theme')==='dark'; m.setAttribute('content', dark ? '#000000' : '#f5f5f7'); }
+function closeXSheet(){ xBarTint(false); xRecPend = null; xKitePay = false; xDraftPend = null; $('#backdrop').classList.remove('show'); $('#xsheet').classList.remove('show');
   setTimeout(()=>{ if ($('#xsheet').classList.contains('show')) return; $('#backdrop').hidden=true; $('#xsheet').hidden=true; },280); }
 const chips = (list, on, attr) => list.map(v=>`<button class="${v===on?'on':''}" data-${attr}="${esc(v)}">${esc(v)}</button>`).join('');
 // The amount already there (an edit, or what you typed before leaving the
