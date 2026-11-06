@@ -758,7 +758,7 @@ html[data-theme=dark] .xfresh{background:rgba(41,151,255,.28);box-shadow:0 0 0 3
 .row .v.up{color:var(--up)}
 /* add sheet (shared) */
 /* the add / edit form is a full page: Cancel on the left, the title centred */
-#xsheet{display:flex;flex-direction:column;top:0;height:100vh;height:100dvh;max-height:none;border-radius:0;overflow:hidden;padding:calc(6px + env(safe-area-inset-top)) 0 0;background:var(--canvas)}
+#xsheet{display:flex;flex-direction:column;top:0;bottom:0;height:auto;max-height:none;border-radius:0;overflow:hidden;padding:calc(6px + env(safe-area-inset-top)) 0 0;background:var(--parchment)}
 #xsheet .grab{display:none}
 .xhd{position:relative;display:flex;justify-content:flex-start;align-items:center;min-height:44px;padding:0 16px 8px;flex:none}
 #xsheet .xhd h3{position:absolute;left:50%;top:calc(50% - 4px);transform:translate(-50%,-50%);display:block;font-family:var(--font-disp);font-size:17px;font-weight:600;letter-spacing:-.4px;margin:0;white-space:nowrap}
@@ -767,6 +767,8 @@ html[data-theme=dark] .xfresh{background:rgba(41,151,255,.28);box-shadow:0 0 0 3
 .xseg{margin-bottom:10px}
 .xpanel{flex:none;background:var(--parchment);border-top:1px solid var(--hairline);padding-bottom:env(safe-area-inset-bottom)}
 .xph{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;font-size:13px;font-weight:500;color:var(--ink-2);background:#eaf2fc}
+#xsheet .xph{background:var(--parchment)}
+#xsheet .xpanel:has(> .xpb > .xkp){padding-bottom:0}
 .xph button{color:var(--blue);font-size:15px;font-weight:500}
 /* every picker (keypad, categories, accounts) gets the same fixed height — about half the
    screen with its title bar; a long list scrolls inside it */
@@ -822,6 +824,9 @@ html[data-theme=dark] .xpb > .xgrid.tiles .xsubrow, html[data-theme=dark] .xpb >
 .xkp button.fn{background:rgba(120,120,128,.18);color:var(--ink-2);font-size:19px}
 .xkp button svg{width:22px;height:22px}
 .xkp button.ok{background:var(--blue);color:#fff;font-size:17px;font-weight:600}
+#xsheet .xkp{background:var(--parchment)}
+#xsheet .xkp button:not(.op):not(.fn):not(.ok){background:var(--canvas);box-shadow:0 1px 0 rgba(0,0,0,.06)}
+#xsheet .xkp button.fn{background:rgba(120,120,128,.16)}
 .xpb:has(> .xkp){height:auto;max-height:none}  /* five rows of keys: the panel fits them */
 .xpb > .xkp{grid-auto-rows:48px}
 .xpb > .xkp button{min-height:0;height:48px}
@@ -838,6 +843,8 @@ html[data-theme=dark] .xpb > .xgrid.tiles .xsubrow, html[data-theme=dark] .xpb >
 .xform{margin-bottom:16px}
 /* entry form, layout A */
 .xa{margin:6px 0 14px}
+/* add screen: grey page, the form in one white card (same as the New account card) */
+#xsheet .xa{margin:14px 0;background:var(--canvas);border:1px solid var(--card-edge);border-radius:var(--r-card);padding:16px}
 .xfr.xa-amt{display:block;border:0;min-height:0;text-align:center;padding:14px 0 2px;cursor:pointer}
 .xfun{display:block;margin:2px auto 4px;padding:4px 12px;border:0;border-radius:var(--r-pill);background:var(--sunken);color:var(--ink-2);font:500 13px/1.3 inherit;letter-spacing:-.1px;cursor:pointer}
 .xfun.pop{animation:xfpop .28s ease}
@@ -864,6 +871,16 @@ html[data-theme=dark] .xpb > .xgrid.tiles .xsubrow, html[data-theme=dark] .xpb >
 .xfr.xa-in:focus-within{box-shadow:inset 0 0 0 1.5px var(--blue)}
 .xfr.xa-in{position:relative}
 .xfr.xa-in input{padding-right:30px}
+/* Note / Description: one outlined box, label left, value right (same as New account) */
+.xa-ins{background:var(--canvas);border:1px solid var(--card-edge);border-radius:var(--r-mid);overflow:hidden;margin-bottom:8px}
+.xa-ins .xfr.xa-in{display:flex;align-items:center;gap:12px;margin:0;border-radius:0;background:none;padding:11px 16px;border-top:1px solid var(--hairline)}
+.xa-ins .xfr.xa-in:first-child{border-top:0}
+.xa-ins .xfr.xa-in:focus-within{box-shadow:none}
+.xa-ins .xfr.xa-in .k{display:block;flex:none;min-width:104px;margin:0;font-size:15px;color:var(--ink-2);white-space:nowrap}
+.xa-ins .xfr.xa-in .v{flex:1;min-width:0;display:block}
+.xa-ins .xfr.xa-in input{width:100%;border:0;background:none;outline:none;font-size:16px;text-align:right;padding:0}
+.xa-ins .xfr.xa-in:has(.xa-x.show) input{padding-right:30px}
+.xa-ins .xfr.xa-in input::placeholder{color:var(--ink-3)}
 .xa-x{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;border:0;padding:0;background:#c7c7cc;color:#fff;display:none;align-items:center;justify-content:center}
 .xa-x.show{display:flex}
 .xa-x svg{width:10px;height:10px}
@@ -2406,7 +2423,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07k';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07l';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -8089,18 +8106,10 @@ function openXSheet(e, mode, tpl){
   xOpenCat = ''; xErrMsg = '';
   xField = s && s.amount ? null : (/^false$/i.test(DEF('form.keypad')) ? null : 'amount'); xStep = s && s.amount ? 3 : 1;
   paintXSheet();
-  $('#backdrop').hidden=false; $('#xsheet').hidden=false; xBarTint(true);
+  $('#backdrop').hidden=false; $('#xsheet').hidden=false;
   requestAnimationFrame(()=>{ $('#backdrop').classList.add('show'); $('#xsheet').classList.add('show'); });
 }
-// The phone's status bar takes the add page's white (dark in dark mode) while it's open. An installed
-// iPhone app ignores a changed theme-color, so the tag is swapped for a new one, which iOS does pick up.
-function xBarTint(on){
-  const old = document.querySelector('meta[name=theme-color]'), dark = document.documentElement.getAttribute('data-theme')==='dark';
-  const c = on ? (getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff') : (dark ? '#000000' : '#f5f5f7');
-  const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c;
-  if (old) old.replaceWith(m); else document.head.appendChild(m);
-}
-function closeXSheet(){ xBarTint(false); xRecPend = null; xKitePay = false; xDraftPend = null; $('#backdrop').classList.remove('show'); $('#xsheet').classList.remove('show');
+function closeXSheet(){ xRecPend = null; xKitePay = false; xDraftPend = null; $('#backdrop').classList.remove('show'); $('#xsheet').classList.remove('show');
   setTimeout(()=>{ if ($('#xsheet').classList.contains('show')) return; $('#backdrop').hidden=true; $('#xsheet').hidden=true; },280); }
 const chips = (list, on, attr) => list.map(v=>`<button class="${v===on?'on':''}" data-${attr}="${esc(v)}">${esc(v)}</button>`).join('');
 // The amount already there (an edit, or what you typed before leaving the
