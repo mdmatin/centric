@@ -813,12 +813,19 @@ html[data-theme=dark] .xpb > .xgrid.tiles .xsubrow, html[data-theme=dark] .xpb >
 .xgrid.pills > button.on{background:#eaf2fc;box-shadow:inset 0 0 0 2px var(--blue);color:var(--blue);font-weight:600}
 .xpb > .xkp{flex:1;grid-auto-rows:1fr}
 .xpb > .xkp button{height:auto;min-height:38px}
-.xpb > .xkp button:not(.ok):not(.op){font-size:21px}
-.xkp{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hairline)}
-.xkp button{background:var(--canvas);height:52px;font-size:23px;color:var(--ink);font-variant-numeric:tabular-nums}
-.xkp button.op{background:#f7f7f9;color:var(--ink-2);font-size:21px}
+.xpb > .xkp button:not(.ok):not(.op){font-size:22px}
+/* keypad: separate rounded keys — numbers grey, + − × ÷ = blue-tinted, ⌫ and C a shade darker, OK solid blue */
+.xkp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--canvas)}
+.xkp button{background:rgba(120,120,128,.1);border-radius:12px;height:48px;font:500 22px var(--font-disp);color:var(--ink);font-variant-numeric:tabular-nums;
+  display:grid;place-items:center;transition:transform .08s ease,background-color .12s ease}
+.xkp button.op{background:rgba(0,102,204,.1);color:var(--blue);font-size:22px;font-weight:600}
+.xkp button.fn{background:rgba(120,120,128,.18);color:var(--ink-2);font-size:19px}
+.xkp button svg{width:22px;height:22px}
 .xkp button.ok{background:var(--blue);color:#fff;font-size:17px;font-weight:600}
-.xkp button:active{filter:brightness(.92)}
+.xpb:has(> .xkp){height:auto;max-height:none}  /* five rows of keys: the panel fits them */
+.xpb > .xkp{grid-auto-rows:48px}
+.xpb > .xkp button{min-height:0;height:48px}
+.xkp button:active{transform:scale(.95);filter:brightness(.9)}
 .xgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--hairline)}
 .xgrid > button,.xgrid > b{background:var(--canvas);min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 4px;font-size:15px;color:var(--ink);text-align:center}
 .xgrid > button i{font-style:normal;font-size:11px;color:var(--ink-3);line-height:1}
@@ -1081,7 +1088,7 @@ html[data-theme=dark] .xamt input::placeholder,html[data-theme=dark] .xbig .a em
 html[data-theme=dark] .tarw.tr{background:rgba(41,151,255,.18)}
 html[data-theme=dark] .tarw.rf,html[data-theme=dark] .tarw.lq{background:rgba(255,159,10,.18);color:#ffb340}
 html[data-theme=dark] .tarw.iv{background:rgba(191,90,242,.2);color:#d08bff}
-html[data-theme=dark] .xkp button.op{background:#2c2c2e}
+html[data-theme=dark] .xkp button.op{background:rgba(10,132,255,.18)}
 html[data-theme=dark] .xph{background:rgba(41,151,255,.16)}
 html[data-theme=dark] .xgrid > button.on,html[data-theme=dark] .xgrid.tiles > button.on{background:rgba(41,151,255,.16)}
 html[data-theme=dark] .xsubrow{background:#111113}
@@ -2399,7 +2406,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07i';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07k';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -7972,9 +7979,10 @@ function xKey(k){
 const xAmt = () => xEval(xExpr);
 const xExprHtml = () => xExpr ? esc(xExpr.replace(/\d+(\.\d*)?/g, m=>groupNum(m,'en-IN'))) : '';
 function xKeypad(okLabel){
-  const keys = ['+','−','×','÷','7','8','9','=','4','5','6','.','1','2','3','⌫','C','0','00','OK'];
+  // laid out like the iPhone Calculator: ⌫ C = ÷ on top, operators down the right, 00 0 . at the bottom and OK (Next / Save) in the corner
+  const keys = ['⌫','C','=','÷','7','8','9','×','4','5','6','−','1','2','3','+','00','0','.','OK'];
   return `<div class="xkp">${keys.map(k=>k==='OK' ? `<button class="ok" data-k="OK">${esc(okLabel)}</button>`
-    : `<button class="${/\d/.test(k)?'':'op'}" data-k="${k}">${k}</button>`).join('')}</div>`;
+    : `<button class="${/^[+−×÷=]$/.test(k)?'op':k==='⌫'?'fn':k==='C'?'fn':''}" data-k="${k}">${k==='⌫' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1zM17 9l-5 6M12 9l5 6"/></svg>' : k}</button>`).join('')}</div>`;
 }
 
 /* what can be picked */
@@ -8084,10 +8092,14 @@ function openXSheet(e, mode, tpl){
   $('#backdrop').hidden=false; $('#xsheet').hidden=false; xBarTint(true);
   requestAnimationFrame(()=>{ $('#backdrop').classList.add('show'); $('#xsheet').classList.add('show'); });
 }
-// the phone's status bar takes the add page's white (or dark) while it's open, not the grey of the page behind
-function xBarTint(on){ const m = document.querySelector('meta[name=theme-color]'); if (!m) return;
-  if (on){ m.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff'); return; }
-  const dark = document.documentElement.getAttribute('data-theme')==='dark'; m.setAttribute('content', dark ? '#000000' : '#f5f5f7'); }
+// The phone's status bar takes the add page's white (dark in dark mode) while it's open. An installed
+// iPhone app ignores a changed theme-color, so the tag is swapped for a new one, which iOS does pick up.
+function xBarTint(on){
+  const old = document.querySelector('meta[name=theme-color]'), dark = document.documentElement.getAttribute('data-theme')==='dark';
+  const c = on ? (getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff') : (dark ? '#000000' : '#f5f5f7');
+  const m = document.createElement('meta'); m.name = 'theme-color'; m.content = c;
+  if (old) old.replaceWith(m); else document.head.appendChild(m);
+}
 function closeXSheet(){ xBarTint(false); xRecPend = null; xKitePay = false; xDraftPend = null; $('#backdrop').classList.remove('show'); $('#xsheet').classList.remove('show');
   setTimeout(()=>{ if ($('#xsheet').classList.contains('show')) return; $('#backdrop').hidden=true; $('#xsheet').hidden=true; },280); }
 const chips = (list, on, attr) => list.map(v=>`<button class="${v===on?'on':''}" data-${attr}="${esc(v)}">${esc(v)}</button>`).join('');
