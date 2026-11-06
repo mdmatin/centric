@@ -2359,7 +2359,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-05v';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-06b';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4845,6 +4845,7 @@ function renderPage(){
       inp.onkeydown = e=>{ if(e.key==='Enter') save(); if(e.key==='Escape') close(); };
     }
     if (p.showChart) drawHist('P:'+p.platform, false);
+    $$('#page [data-hccy]').forEach(b=>b.onclick=()=>{ p.inr = b.dataset.hccy==='inr'; const el=$('#page'), y=el.scrollTop; renderPage(); el.scrollTop=y; });
     $$('#page [data-pdiv]').forEach(b=>b.onclick=()=>pushPage({ kind:'dividends', platform:p.platform }));
     $$('#page [data-ht]').forEach(b=>b.onclick=()=>{ if (p.tab!==b.dataset.ht){ p.q=''; p.sf=false; } p.tab=b.dataset.ht; const el=$('#page'), y=el.scrollTop; renderPage(); el.scrollTop=y; });
     $$('#page [data-hr]').forEach(b=>b.onclick=()=>{ histRange=b.dataset.hr; const el=$('#page'), y=el.scrollTop; renderPage(); el.scrollTop=y; });
@@ -5198,33 +5199,51 @@ function platformBody(name){
   }
   const rows = [...by.values()].sort((a,b)=>b.value-a.value);
   const ca = cryptoApp(name);
-  let inv = rows.reduce((s,r)=>s+r.invested,0), val = rows.reduce((s,r)=>s+r.value,0);
-  if (ca && ca.current!=null) val = ca.current;          // the Crypto tab's totals win
-  if (ca && ca.invested!=null) inv = ca.invested;
-  const rl = rows.reduce((s,r)=>s+r.realized,0), ret = val-inv, pct = inv ? ret/inv : null;
   const cats = [...new Set(rows.map(r=>r.category).filter(Boolean))];
   if (!cats.length && ca) cats.push('Crypto');
   const pd = platformDay(name);
   // an exchange whose value is typed on the Crypto tab can be updated from here
   const top0 = pageStack[pageStack.length-1] || {};
   const canEdit = !!(ca && ca.manual && ca.row && ca.col);
+  // a platform holding US stocks (INDmoney): $ / ₹ switch, as on the US Stocks card and a US holding.
+  // $ reads each US holding from the Master List in dollars (its share by quantity), so cost is what the
+  // dollars cost, not today's rate; anything else on the platform, realised and today go back at today's rate.
+  const fx = D.data.netWorth && D.data.netWorth.head && D.data.netWorth.head.usdInr;
+  const hasUS = !!fx && !ca && rows.some(r=>r.category==='US Stocks'), usdOn = hasUS && !top0.inr;
+  if (usdOn){
+    const MH = new Map((D.data.holdings||[]).map(h=>[String(h.ticker).toUpperCase(), h]));
+    rows.forEach(r=>{ const h = MH.get(String(r.ticker).toUpperCase()), sh = h && h.qty>0 ? Math.min(1, r.qty/h.qty) : 0;
+      if (r.category==='US Stocks' && sh){ r.invested = (h.invested||0)*sh; r.value = (h.value||0)*sh; }
+      else { r.invested /= fx; r.value /= fx; }
+      r.realized /= fx; });
+    rows.sort((a,b)=>b.value-a.value);
+  }
+  const ccy = hasUS ? `<div class="ccy" role="group" aria-label="Currency"><button data-hccy="usd" class="${usdOn?'on':''}">$</button><button data-hccy="inr" class="${usdOn?'':'on'}">₹</button></div>` : '';
+  // every figure below goes through these: dollars when switched to $, rupees otherwise
+  const fM = usdOn ? (v => usd.format(v)) : fINR, fM2 = usdOn ? (v => usd2.format(v)) : fINR2;
+  const pdc = pd && pd.dayChange!=null ? (usdOn ? pd.dayChange/fx : pd.dayChange) : null;
+  let inv = rows.reduce((s,r)=>s+r.invested,0), val = rows.reduce((s,r)=>s+r.value,0);
+  if (ca && ca.current!=null) val = ca.current;          // the Crypto tab's totals win
+  if (ca && ca.invested!=null) inv = ca.invested;
+  const rl = rows.reduce((s,r)=>s+r.realized,0), ret = val-inv, pct = inv ? ret/inv : null;
+  const valInr = usdOn ? val*fx : val;                   // XIRR runs on rupee orders, so it takes the rupee value
 
   // 1 · hero — value, today, then the invested-vs-value chart, like a ticker
   const card = `<div class="card pg-card pg-hero">
       <div class="pg-id">${logoMark(name, null, iconFor(cats[0]||''))}
         <div class="grow"><div class="t">${esc(name)}</div><div class="s">${cats.map(c=>esc(CAT_LABEL[c]||c)).join(', ')||'—'} · ${rows.length} holding${rows.length===1?'':'s'}</div></div>
-        ${chartToggle(top0.showChart)}</div>
-      ${canEdit ? `<button class="pg-big pg-edit num money" data-vedit aria-label="Edit current value">${bigAmt(fINR2(val))}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>` : `<div class="pg-big num money">${bigAmt(fINR2(val))}</div>`}
+        ${chartToggle(top0.showChart)}${ccy}</div>
+      ${canEdit ? `<button class="pg-big pg-edit num money" data-vedit aria-label="Edit current value">${bigAmt(fINR2(val))}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>` : `<div class="pg-big num money">${bigAmt(fM2(val))}</div>`}
       ${canEdit && top0.editVal ? `<div class="ed pg-ed">
         <div class="inwrap"><span>₹</span><input type="text" inputmode="decimal" value="${ca.current ?? 0}" aria-label="${esc(name)} current value"></div>
         <div class="hint">Saved to the Crypto tab · ${esc(ca.name)} current value</div>
         <div class="btns"><button class="cancel">Cancel</button><button class="save">Save</button></div></div>` : ''}
-      ${pd && pd.dayChange!=null ? `<div class="pg-sub num money"><span class="grp">${arrowAmt(pd.dayChange, fINR)}${pd.dayChangePct!=null?` <span class="${cls(pd.dayChangePct)}">(${fPct(Math.abs(pd.dayChangePct),false)})</span>`:''} <span class="k">today</span></span></div>` : ''}
+      ${pdc!=null ? `<div class="pg-sub num money"><span class="grp">${arrowAmt(pdc, fM)}${pd.dayChangePct!=null?` <span class="${cls(pd.dayChangePct)}">(${fPct(Math.abs(pd.dayChangePct),false)})</span>`:''} <span class="k">today</span></span></div>` : ''}
       ${histInner('P:'+name, top0.showChart)}
     </div>`;
 
   const c = platCache[name] || {}, txns = c.txns || [];
-  const xr = c.txns && !c.partial ? platXirr(txns, val) : null;
+  const xr = c.txns && !c.partial ? platXirr(txns, valInr) : null;
   const top = pageStack[pageStack.length-1] || {}, tab = top.tab || 'overview';
   const seg = `<div class="tabsw"><div class="seg" id="hdSeg">
       <button data-ht="overview" class="${tab==='overview'?'on':''}">Overview</button>
@@ -5246,13 +5265,13 @@ function platformBody(name){
   const tp = inv ? (ret+rl)/inv : null;
   const pdivs = divsForPlatform(name);            // shown only when this platform has paid any
   const stats = `<div class="card hstats num"><div class="kgrid k2">
-      <div><span>Invested</span><b class="money">${fINR(inv)}</b></div>
-      <div><span>Current P&amp;L${pct!=null?` <em class="${cls(pct)}">(${arrowPct(pct)})</em>`:''}</span><b class="money ${cls(ret)}">${ret<0?'−':ret>0?'+':''}${fINR(Math.abs(ret))}</b></div>
+      <div><span>Invested</span><b class="money">${fM(inv)}</b></div>
+      <div><span>Current P&amp;L${pct!=null?` <em class="${cls(pct)}">(${arrowPct(pct)})</em>`:''}</span><b class="money ${cls(ret)}">${ret<0?'−':ret>0?'+':''}${fM(Math.abs(ret))}</b></div>
     </div>
     <div class="hrow"><span>XIRR</span><b>${xr!=null?fPct(xr,false):c.loading?'…':'—'}</b></div>
-    <div class="hrow"><span>Realised</span><b class="money">${fINR(rl)}</b></div>
+    <div class="hrow"><span>Realised</span><b class="money">${fM(rl)}</b></div>
     ${pdivs.length ? `<button class="hrow hlink" data-pdiv><span>Dividends earned</span><b class="money">${nativeMoney(true)(pdivs.reduce((a,x)=>a+x.amount,0))}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></b></button>` : ''}
-    <div class="hrow tr2"><span>Total P&amp;L${tp!=null?` <em class="${cls(tp)}">(${arrowPct(tp)})</em>`:''}</span><b class="money">${(ret+rl)<0?'−':(ret+rl)>0?'+':''}${fINR(Math.abs(ret+rl))}</b></div>
+    <div class="hrow tr2"><span>Total P&amp;L${tp!=null?` <em class="${cls(tp)}">(${arrowPct(tp)})</em>`:''}</span><b class="money">${(ret+rl)<0?'−':(ret+rl)>0?'+':''}${fM(Math.abs(ret+rl))}</b></div>
     </div>`;
   const held = `<div class="sechead"><h2>Holdings</h2></div>
     ${rows.length > 1 ? `<div class="search pg-srch" id="pgSearch">${searchInner(top.q, 'Search holdings')}</div>` : ''}
@@ -5260,7 +5279,7 @@ function platformBody(name){
       const g = r.value-r.invested, gp = r.invested ? g/r.invested : null;
       return `<div class="row tap" data-t="${esc(r.ticker)}" data-q="${esc(qWords(r.ticker, r.category, CAT_LABEL[r.category], r.buckets.join(' ')))}">${tickerTile(r)}
         <div class="l"><div class="n">${esc(r.ticker)}</div><div class="m">${qtyFmt(r.qty)} · ${r.buckets.map(esc).join(', ')||'—'}</div></div>
-        <div class="r"><div class="v num money">${fINR(r.value)}</div>
+        <div class="r"><div class="v num money">${fM(r.value)}</div>
           <div class="p"><span class="pill sm ${cls(g)} num money">${fPct(gp)}</span></div></div></div>`;
     }).join('') || '<div class="empty">Nothing held here</div>'}</div>`;
   return card + seg + `<div class="tabbody">` + stats + held + `</div>`;   // room below the tabs so switching never jumps
@@ -6439,15 +6458,13 @@ function epfBody(p){
   const c = epfCalc(); if (!c) return '<div class="pg-load">Loading…</div>';
   const row = (t, m, v, cls, ed) => `<div class="row${ed ? ' tap' : ''}" ${ed ? `data-epfe="${ed}" role="button"` : ''}><div class="l"><div class="n">${t}</div>${m ? `<div class="m">${m}</div>` : ''}</div><div class="r"><div class="v num money ${cls||''}">${v}</div></div></div>`;
   const uan = c.E.uan ? 'UAN ••••' + String(c.E.uan).slice(-4) : '';
-  const closed = c.bal < 1 && c.lastW;
   const hero = `<div class="card pg-card pg-hero">
       <div class="pg-id">${mark('EPF')}<div class="grow"><div class="t">EPF</div>${uan ? `<div class="s">${esc(uan)}</div>` : ''}</div></div>
       <div class="pg-big num money">${bigAmt(fINR2(c.bal))}</div>
-      ${closed ? `<div class="pg-sub"><span class="k">${fINR(c.lastW.amount)} withdrawn on ${esc(fDateY(c.lastW.date))}</span></div>` : ''}
-      <div class="spstats lcr"><div><span>Your share</span><b class="num money">${fINR(c.emp)}</b></div>
-        <div><span>Employer</span><b class="num money">${fINR(c.er)}</b></div>
-        <div><span>Interest</span><b class="num money up">${fINR(c.int)}</b></div></div>
       ${c.months.length > 1 ? monthLineChart(c.months, c.series, c.selM) : ''}
+      <div class="spstats lcr npstats"><div><span>Your share</span>${kTip(c.emp)}</b></div>
+        <div><span>Employer</span>${kTip(c.er)}</b></div>
+        <div><span>Interest</span>${kTip(c.int, 'up')}</b></div></div>
     </div>`;
   const ints = c.I.slice().reverse().map(x=>{ const r = c.rate(x);
     return row(esc(fyLbl(fyOf(x.date))), `Up to ${esc(fDateY(x.date))}${r ? ' · ≈' + r.toFixed(2) + '%' : ''}`, '+' + fINR(x.amount), 'up', 'i:' + c.I.indexOf(x)); }).join('');
@@ -6492,9 +6509,9 @@ function npsBody(p){
       <div class="pg-big num money">${bigAmt(fINR2(c.value))}</div>
       ${N.dayChange!=null ? `<div class="pg-sub num money"><span class="grp">${arrowAmt(N.dayChange, fINR)}${N.dayChangePct!=null ? ` <span class="${cls(N.dayChangePct)}">(${fPct(Math.abs(N.dayChangePct),false)})</span>` : ''} <span class="k">today</span></span></div>` : ''}
       ${c.months.length > 1 ? monthLineChart(c.months, c.vals, c.months[c.months.length-1], null, 0, true) : ''}
-      <div class="spstats lcr npstats"><div><span>Invested</span><b class="num money">${fINR(c.invested)}</b></div>
-        <div><span>Returns</span><b class="num money ${cls(c.pnl)}">${c.pnl<0?'−':c.pnl>0?'+':''}${fINR(Math.abs(c.pnl))}${pc!=null ? ` <em class="pct">${fPct(pc)}</em>` : ''}</b></div>
-        <div><span>Charges</span><b class="num money">${fINR(c.charges)}</b></div></div>
+      <div class="spstats lcr npstats"><div><span>Invested</span>${kTip(c.invested)}</b></div>
+        <div><span>Returns</span>${kTip(c.pnl, cls(c.pnl), c.pnl<0?'−':c.pnl>0?'+':'')}${pc!=null ? ` <em class="pct">${fPct(pc)}</em>` : ''}</b></div>
+        <div><span>Charges</span>${kTip(c.charges)}</b></div></div>
     </div>`;
   // the three schemes: a strip of their shares, then units × today's NAV
   const strip = `<div class="npstrip">${c.funds.map(f=>`<i style="flex:${Math.max(f.value,0.01)};--c:${f.col}"></i>`).join('')}</div>`;
@@ -7394,6 +7411,7 @@ function qOf(ds){ const y = +ds.slice(0,4), md = ds.slice(5); let q = (y-1) + '-
 const qNext = q => { const y = +q.slice(0,4), i = ZI_Q.indexOf(q.slice(5)); return i===3 ? (y+1)+'-'+ZI_Q[0] : y+'-'+ZI_Q[i+1]; };
 const qPrev = q => { const y = +q.slice(0,4), i = ZI_Q.indexOf(q.slice(5)); return i===0 ? (y-1)+'-'+ZI_Q[3] : y+'-'+ZI_Q[i-1]; };
 const qFY = q => { const y = +q.slice(0,4), m = +q.slice(5,7), s = m<=3 ? y-1 : y; return 'FY ' + String(s).slice(2) + '–' + String(s+1).slice(2); };
+const kTip = (v, c, pre) => `<b class="num money tipv ${c||''}" data-full="${esc((pre||'') + fINR2(Math.abs(v)))}">${pre||''}${fKL(Math.abs(v))}`;   // caller closes the </b>
 const fKL = v => { const a = Math.abs(v), t = x => x.toFixed(x < 10 ? 2 : 1).replace(/\.?0+$/,''); return (v<0?'−':'') + (a >= 1e5 ? '₹' + t(a/1e5) + 'L' : a >= 1e3 ? '₹' + t(a/1e3) + 'k' : '₹' + Math.round(a)); };
 const fLakh = v => Math.abs(v) >= 1e5 ? '₹' + (v/1e5).toFixed(1).replace(/\.0$/,'') + 'L' : fINR(v);
 const ziBanks = () => { const z = ziD(); return z && z.interest && z.interest.banks || null; };
@@ -8386,6 +8404,7 @@ async function saveXSheet(){
   const note = xNoteV.trim();
   if (xMode==='expense'){
     if (!xCat) return xErr('Pick a category.', 'category', 2);
+    if (isInvest(xCat) && !xSub && xSubs(xCat).length) return xErr('Pick what you invested in (US Stocks, Stocks…).', 'category', 2);   // the subcategory decides where it goes (a US Stocks deposit, Kite…)
     if (!xAcc) return xErr('Pick what paid for it.', 'account', 3);
     if (!xEditing && (xSplitOn || xCbOn)){
       const part = xSplitOn ? Math.round((Number(numPlain(xSplitV))||0)*100)/100 : 0, cb = xCbOn ? Math.round((Number(numPlain(xCbV))||0)*100)/100 : 0;
@@ -9132,7 +9151,7 @@ function wireRecForm(p){
   $('#page [data-rsave]').onclick = async ()=>{
     keep();
     const amt = Number(f.amount)||0, name = String(f.name||'').trim();
-    const err = !(amt>0) ? 'Enter an amount.' : !name ? 'Give it a name.' : f.kind==='expense' && !f.cat ? 'Pick a category.'
+    const err = !(amt>0) ? 'Enter an amount.' : !name ? 'Give it a name.' : f.kind==='expense' && !f.cat ? 'Pick a category.' : f.kind==='expense' && isInvest(f.cat) && !f.sub && xSubs(f.cat).length ? 'Pick what you invested in (US Stocks, Stocks…).'
       : f.kind==='income' && !f.cat ? 'Pick the income type.' : !f.account ? 'Pick an account.'
       : f.kind==='transfer' && (!f.to || f.to===f.account) ? 'Pick a different To account.' : f.end && f.start && f.end < f.start ? 'It ends before it starts.' : '';
     if (err){ p.err = err; rer(); return; }
@@ -9452,7 +9471,7 @@ function rvCompose(p){
     }
     if (!(amount > 0)) return bad('Enter an amount.', 'amt');
     if (!date) return bad('Pick a date.');
-    if (s.kind==='expense'){ if (!s.cat) return bad('Pick a category.'); if (!s.acc) return bad('Pick what paid for it.');
+    if (s.kind==='expense'){ if (!s.cat) return bad('Pick a category.'); if (isInvest(s.cat) && !s.sub && xSubs(s.cat).length) return bad('Pick what you invested in (US Stocks, Stocks…).'); if (!s.acc) return bad('Pick what paid for it.');
       rvClose(); return saveMove('expense', { date, account:s.acc, category:s.cat, sub:s.sub, note, desc:'', amount }, null); }
     if (s.kind==='tax'){ if (!s.acc) return bad('Pick the account it came from.');
       const cat = xCats().find(c=>/bills/i.test(c)) || 'Bills/Utility';
